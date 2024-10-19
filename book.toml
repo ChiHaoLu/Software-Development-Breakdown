@@ -1,0 +1,6 @@
+[book]
+authors = ["ChiHaoLu"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Software Development Breakdown"
