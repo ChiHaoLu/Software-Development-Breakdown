@@ -7,3 +7,9 @@
     3. Caching：緩存設計
     4. CDN -> CF
     5. Async Processing：異步設計
+
+https://aws.amazon.com/tw/solutions/case-studies/tixcraft/
+https://tw.twincl.com/programming/*641y
+https://www.youtube.com/watch?v=QJzkifQ-Cuk
+https://www.youtube.com/watch?v=lNQAl71Abqc
+https://www.youtube.com/watch?v=GxhPQl2guXM
