@@ -7,15 +7,12 @@
 5. **DevOps**, including CI/CD, testing strategy
     - [DevOps, Cloud, and Agile Foundations Specialization](https://www.coursera.org/specializations/devops-cloud-and-agile-foundations?trk_ref=articleProductCard)
 7. **Microservices and Containerization**, including Docker, Kubernetes, cloud platforms
-    - [Application Development using Microservices and Serverless](https://www.coursera.org/learn/applications-development-microservices-serverless-openshift)
-    - [AWS Cloud Practitioner Essentials](https://www.coursera.org/learn/aws-cloud-practitioner-essentials)
 9. **System Design**, including load balancer, database design, caching, CDN, async processing
     - [system-design-101](https://github.com/ByteByteGoHq/system-design-101)
     - [Example](https://github.com/armankhondker/best-system-design-resources)
 11. **Network System**
     - [2023 Spring - CSIE 2311 and CSIE 1310 - Network Administration and System Administration (Lab)](https://www.csie.ntu.edu.tw/~hsinmu/site/courses/23springnasa)
 12. **Operating System**, including Linux and shell script, x86
-    - [看漫畫學 Linux](https://hackmd.io/@sysprog/linux-comic)
 14. **Cybersecurity Specialization**
     - [Software Security](https://www.coursera.org/learn/software-security)
 15. **Distributed System**
