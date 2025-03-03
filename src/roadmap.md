@@ -5,7 +5,6 @@
 3. **Backend**, including web server and database
     - [Backend master class [Golang + Postgres + Kubernetes + gRPC]](https://www.youtube.com/playlist?list=PLy_6D98if3ULEtXtNSY_2qN21VCKgoQAE)
 5. **DevOps**, including CI/CD, testing strategy
-    - [DevOps, Cloud, and Agile Foundations Specialization](https://www.coursera.org/specializations/devops-cloud-and-agile-foundations?trk_ref=articleProductCard)
 7. **Microservices and Containerization**, including Docker, Kubernetes, cloud platforms
 9. **System Design**, including load balancer, database design, caching, CDN, async processing
     - [system-design-101](https://github.com/ByteByteGoHq/system-design-101)
@@ -16,8 +15,7 @@
 14. **Cybersecurity Specialization**
     - [Software Security](https://www.coursera.org/learn/software-security)
 15. **Distributed System**
-    - [15-440/640 Distributed Systems](https://www.andrew.cmu.edu/course/15-440/)
-    - [6.824 Distributed Systems](https://learncs.me/mit/6.824)
+
 
 ## 書單（很硬但充實）
 
@@ -27,3 +25,5 @@
 - [無瑕的程式碼－敏捷軟體開發技巧守則Clean Code (by Uncle Bob)](https://www.tenlong.com.tw/products/9789862017050)
 - [重構｜改善既有程式的設計 Refactoring, 2/e (by Martin Fowler)](https://www.tenlong.com.tw/products/9789865021832)
 - [Unit Testing Principles, Practices, and Patterns (Paperback) Khorikov, Vladimir](https://www.tenlong.com.tw/products/9781617296277?list_name=srh)
+- Clean Architecture: A Craftsman's Guide to Software Structure and Design
+- Monolith to Microservices

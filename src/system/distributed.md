@@ -1,7 +1,8 @@
 # Distributed System
 
 - [分散式系統 - 在分散的世界中保持一致](https://ithelp.ithome.com.tw/users/20121042/ironman/2792)
-
+- [15-440/640 Distributed Systems](https://www.andrew.cmu.edu/course/15-440/)
+- [6.824 Distributed Systems](https://learncs.me/mit/6.824)
 
 ### Intro
 

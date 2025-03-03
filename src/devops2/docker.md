@@ -1,5 +1,6 @@
 # Docker
 
+- https://www.youtube.com/watch?v=DQdB7wFEygo
 - 圖解 Docker & Kubernetes 的知識與使用方法
 - [Docker —— 從入門到實踐](https://philipzheng.gitbook.io/docker_practice/)
 - [30分钟Docker入门教程](https://www.youtube.com/watch?v=Ozb9mZg7MVM&ab_channel=GeekHour)
