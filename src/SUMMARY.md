@@ -29,5 +29,8 @@
     - [Node.js](./code/language/node.md)
 - [Seciruty](./security/security.md)
     - [Cryptography](./security/cryptography.md)
+    - [Elliptic](./security/elliptic.md)
+    - [Hash](./security/hash.md)
+    - [Encode](./security/encode.md)
 - [Infomation Resource](./info/info.md)
     - [Interview](./info/interview.md)
