@@ -1,5 +1,9 @@
 # API
 
+> 每家服務都會加入他們自己的喜好，可以先掌握一些底層的概念，再去看別人的手冊，當作一種設計的參考範例
+> 現在主流的 api 通常都會以 RESTful 為基礎，再根據團隊的習慣做調整，所以建議可以先了解 RESTful api 的基本概念
+> By Cyan
+
 - [How We Design Our APIs at Slack](https://slack.engineering/how-we-design-our-apis-at-slack/)
 - [API design guide](https://cloud.google.com/apis/design)
 - [API note](https://x.com/nikkisiapno/status/1797882928648925515?s=46&t=FIpRVfpSS4pqRodQSt6utQ)
@@ -27,6 +31,4 @@
 - [簡明RESTful API設計要點](https://tw.twincl.com/programming/*641y)
 
 ## 推薦書單
-- 設計、營運和發展基於 API 的系統
-- Web API 建構與設計
 - Web API 設計原則｜API 與微服務傳遞價值之道

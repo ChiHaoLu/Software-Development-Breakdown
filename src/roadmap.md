@@ -7,6 +7,7 @@
 1. **Target Language & Coding Stlye**: Golang, Rust
 3. **Backend**, including web server and database
     - [Backend master class [Golang + Postgres + Kubernetes + gRPC]](https://www.youtube.com/playlist?list=PLy_6D98if3ULEtXtNSY_2qN21VCKgoQAE)
+    - [REST API Tutorial](https://restfulapi.net/)
 5. **DevOps**, including CI/CD, testing strategy
     - 圖解 Docker & Kubernetes 的知識與使用方法
     - [The Only Docker Tutorial You Need To Get Started](https://www.youtube.com/watch?v=DQdB7wFEygo)
