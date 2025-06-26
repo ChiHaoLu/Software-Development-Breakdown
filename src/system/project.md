@@ -1,6 +1,7 @@
 # Project View
 
-https://www.youtube.com/watch?v=LGOnP9Udffo
+- [How Facebook & YouTube Handle BILLIONS of Likes & Views!](https://www.youtube.com/watch?v=LGOnP9Udffo)
+- [拓元售票系統tixCraft | AWS Solutions Library](https://aws.amazon.com/tw/solutions/case-studies/tixcraft/)
 
 ### Big Project View
 - Gaming Leaderboard https://lnkd.in/edfTDq5R

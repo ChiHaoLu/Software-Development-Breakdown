@@ -28,3 +28,8 @@
     - 💯 [Learning Golang: Introduction to Concurrency Patterns, goroutines and channels](https://www.youtube.com/watch?v=-xEycsoGoA8&ab_channel=MarioCarrion)
     - [Golang Goroutine Basics You MUST Learn! | Golang Concurrency EP1](https://www.youtube.com/watch?v=oHIbeTmmTaA&list=PLve39GJ2D71wSwRQLp_h8B60pKgS85StC&ab_channel=GolangDojo)
     - [Master Go Programming With These Concurrency Patterns (in 40 minutes)](https://www.youtube.com/watch?v=qyM8Pi1KiiM)
+
+
+## 推薦書單
+
+- 💯 [The.Go.Programming.Language.pdf](https://github.com/neo-liang-sap/book/blob/master/Go/The.Go.Programming.Language.pdf)

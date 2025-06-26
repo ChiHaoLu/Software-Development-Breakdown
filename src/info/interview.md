@@ -1,7 +1,5 @@
 # Interview
 
-- Cracking the Coding Interview
-
 ## Sth
 - 若是想往韌體發展的則有嵌入式系統的知識會是大大的加分
 - 若是想往軟體發展OOP的概念蠻重要的
@@ -15,5 +13,4 @@
 ## 刷題
 
 - [《代码随想录》LeetCode 刷题攻略：200道经典题目刷题顺序](https://github.com/youngyangyang04/leetcode-master)
-- [Neetcode](https://neetcode.io/practice): Core Skills to NeetCode 150-250
 - [Curated List of Top 75 LeetCode Questions to Save Your Time](https://www.teamblind.com/post/New-Year-Gift---Curated-List-of-Top-75-LeetCode-Questions-to-Save-Your-Time-OaM1orEU)

@@ -1,5 +1,10 @@
 # Seciruty
 
+Cloudflare Tunnel
+fail2ban
+Zap trigger
+roboshadow
+
 - [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/cheatsheets/AJAX_Security_Cheat_Sheet.html)
 - [Web-based Wallet security practices](https://github.com/jayden-sudo/WalletAttackDemos/tree/main)
 
@@ -15,6 +20,7 @@
 ### XSS - Cross Site Scripting
 
 Protect the input field attack
+- [XSS 原理與攻防- Web 安全常識](https://www.youtube.com/watch?v=QJzkifQ-Cuk&ab_channel=%E4%BB%A3%E7%A0%81%E7%9C%9F%E9%A6%99)
 - [React XSS Guide: Examples and Prevention](https://www.stackhawk.com/blog/react-xss-guide-examples-and-prevention/)
 - [What does it mean when they say React is XSS protected?](https://stackoverflow.com/questions/33644499/what-does-it-mean-when-they-say-react-is-xss-protected)
 - [dangerouslySetInnerHTML](https://reactjs.org/docs/dom-elements.html#dangerouslysetinnerhtml)
