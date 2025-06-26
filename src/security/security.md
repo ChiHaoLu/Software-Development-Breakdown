@@ -1,12 +1,28 @@
 # Seciruty
 
-Cloudflare Tunnel
-fail2ban
-Zap trigger
-roboshadow
-
 - [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/cheatsheets/AJAX_Security_Cheat_Sheet.html)
 - [Web-based Wallet security practices](https://github.com/jayden-sudo/WalletAttackDemos/tree/main)
+
+### 阻擋工具
+- Cloudflare Tunnel
+- fail2ban
+- Zap trigger
+- roboshadow
+
+### 靜態分析工具(SAST, static application security testing) 
+
+> 包含 lint，也包含用數學的方式證明程式的某些行為符合其設計規約，當然也包含把常見的 bug 引入測試
+
+- CodiumAI
+- PVS Studio
+- ESlint
+- SonarQube
+- Fortify Static Code Analyzer
+- Coverity
+- Codacy
+- ReSharper
+
+## 常見攻擊
 
 ### DDoS
 
@@ -16,7 +32,6 @@ roboshadow
     * Rate Limitinig
     * Malicious Network Protection
 
-
 ### XSS - Cross Site Scripting
 
 Protect the input field attack
@@ -25,7 +40,6 @@ Protect the input field attack
 - [What does it mean when they say React is XSS protected?](https://stackoverflow.com/questions/33644499/what-does-it-mean-when-they-say-react-is-xss-protected)
 - [dangerouslySetInnerHTML](https://reactjs.org/docs/dom-elements.html#dangerouslysetinnerhtml)
 - [Check List: Avoiding XSS in React applications](https://pragmaticwebsecurity.com/files/cheatsheets/reactxss.pdf)
-
 
 ### Environment Variables
 * Protect Steal the `.env` by encryption: [Vercel: Environment Variables](https://vercel.com/docs/concepts/projects/environment-variables)

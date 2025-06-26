@@ -25,3 +25,8 @@
 
 - [什麼是RESTful API？](https://aws.amazon.com/tw/what-is/restful-api/)
 - [簡明RESTful API設計要點](https://tw.twincl.com/programming/*641y)
+
+## 推薦書單
+- 設計、營運和發展基於 API 的系統
+- Web API 建構與設計
+- Web API 設計原則｜API 與微服務傳遞價值之道
