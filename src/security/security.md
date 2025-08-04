@@ -1,4 +1,4 @@
-# Seciruty
+# Security
 
 - [OWASP Cheat Sheet Series](https://cheatsheetseries.owasp.org/cheatsheets/AJAX_Security_Cheat_Sheet.html)
 - [Web-based Wallet security practices](https://github.com/jayden-sudo/WalletAttackDemos/tree/main)
