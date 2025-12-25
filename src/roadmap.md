@@ -28,3 +28,8 @@
 15. **Interview**
     - Cracking the Coding Interview
     - [Neetcode](https://neetcode.io/practice): Core Skills to NeetCode 150-250
+
+
+## Other Roadmap
+
+- [kamranahmedse/developer-roadmap](https://github.com/kamranahmedse/developer-roadmap.git)

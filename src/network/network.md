@@ -12,6 +12,17 @@
     - AWS: VPC, SG/NACL, IGW, NAT
     - GCP: VPC, Firewall Rule, NAT, Default Internet Gateway
 
+### IP
+
+127.0.0.1 is myself (loopback address)
+192.168.1.1 is a private IP (gateway) for home routers etc.
+10.0.0.0/8 is the address range for private networks
+255.255.255.255 is the broadcast address (for all)
+8.8.8.8 is Google's public DNS server
+169.254.0.0/16 is the auto-assigned address (APIPA) upon DHCP failure
+0.0.0.0 → No address / meaning all addresses
+244.0.0.1 is part of the multicast address range
+
 ### 封包（和網路管理有關）
 
 > 很多人會做搶票機器人但都是用 Selenium，其實那都太慢了呵呵

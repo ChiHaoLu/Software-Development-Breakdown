@@ -1,5 +1,6 @@
 # Project View
 
+- [Kafka Streams 實作了一個售票系統](https://www.facebook.com/groups/backendtw/permalink/3745495902250925/?rdid=6limcLSC3B1SaMQd#)
 - [How Facebook & YouTube Handle BILLIONS of Likes & Views!](https://www.youtube.com/watch?v=LGOnP9Udffo)
 - [拓元售票系統tixCraft | AWS Solutions Library](https://aws.amazon.com/tw/solutions/case-studies/tixcraft/)
 
