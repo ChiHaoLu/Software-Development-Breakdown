@@ -1,5 +1,18 @@
 # Golang
 
+## Roadmap
+
+想「練 Go」練這幾個：
+
+1. concurrency（goroutine + channel）
+2. context timeout
+3. worker pool
+4. graceful shutdown
+5. background job architecture
+6. dependency injection
+
+## Target
+
 1. Syntax
     -  💯 [A tour of Go](https://go.dev/tour/welcome/1)：語法遊樂場
     -  [CMU - Learning Go](https://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15440-f11/go/doc/docs.html)
