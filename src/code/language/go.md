@@ -1,5 +1,18 @@
 # Golang
 
+## Interview
+
+- [lifei6671/interview-go](https://github.com/lifei6671/interview-go)
+- [Go常见面试题【由浅入深】2022版](https://zhuanlan.zhihu.com/p/471490292)
+- [mao888/golang-guide](https://github.com/mao888/golang-guide)
+- [📝 100 COMMON GOLANG INTERVIEW QUESTIONS 🐹](https://dev.to/truongpx396/100-common-golang-interview-questions-1gh9)
+
+### My Project
+
+- [GoodRader](https://github.com/ChiHaoLu/goodrader/blob/main/docs/GO_LEARNING_GUIDE.md)
+- [Sinfonia](https://github.com/ChiHaoLu/sinfonia-backend)
+- [Offchain Oracle Paymaster](https://github.com/ChiHaoLu/Offchain-Oracle-Service)
+
 ## Roadmap
 
 想「練 Go」練這幾個：
