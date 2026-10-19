@@ -1,0 +1,4 @@
+{
+  "title": "Software Development Breakdown",
+  "pages": ["index", "backend", "devops", "container", "system", "network", "code", "security", "info"]
+}
