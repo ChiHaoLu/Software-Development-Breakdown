@@ -19,7 +19,9 @@ RPC API 可用於在你的服務裡面呼叫外部的服務（remote functions i
 ### Similarities between RPC and REST APIs
 
 - 抽象 Abstraction：focus on function rather than technical implementation
-- 溝通 Communication：為了可讀性與彈性以及訊息溝通，會使用 JSON and XML
+- 溝通 Communication：都需要一個雙方同意的資料格式來交換訊息
+    - REST 比較有彈性，同一個 API 可以依 client 需求回傳不同格式（JSON、XML……）
+    - RPC 的格式通常由框架決定且固定，例如 gRPC 用 Protobuf、JSON-RPC 用 JSON、XML-RPC 用 XML
 - 跨語言相容 Cross-language compatibility：不同服務可能使用不同的 programming language
 
 ### Architecture principles: RPC vs. REST
@@ -35,7 +37,7 @@ RPC 專注在 functions 和 actions，而 REST 專注在 resources 或 objects�
 RPC 並沒有像 REST 那麼標準化，主要用於。
 
 > REST 有一套大家都遵守的規則：用 HTTP、用 URL 表示資源（/users/123）、用 GET/POST/PUT/DELETE 表示動作。
-> RPC 只是一種「概念/風格」，底下怎麼傳資料、用什麼格式，每個實作都不一樣（gRPC、JSON-RPC、XML-RPC、Thrift……各自一套）。
+> RPC 只是一種「概念/風格」，底下怎麼傳資料、用什麼格式，每個實作都不一樣（gRPC、JSON-RPC、XML-RPC、Thrift……各自一套）。也就是說 RPC 框架的通訊與具體的協定無關，RPC 可基於 HTTP 或 TCP 協定
 
 - 遠端呼叫 Remote invocation：
     - 讓你呼叫另一台機器上的函式，寫起來跟呼叫本地函式一樣。
@@ -43,11 +45,18 @@ RPC 並沒有像 REST 那麼標準化，主要用於。
 - 傳遞參數 Passing parameters：
     - 客戶端把參數傳給伺服器的函式，跟本地函式傳參數差不多。
     - `getUser(123)` 裡的 `123` 就是參數。RPC 框架會自動把它序列化（例如轉成 JSON 或 Protobuf 二進位），透過網路送過去，伺服器那邊再反序列化回來，交給真正的函式。
+    - 傳輸方式和序列化會直接影響 RPC 的效能
 - Stubs：
     - 是一個「替身」函式，負責處理網路傳輸的苦工，兩邊各有一個
     - Client stub：長得跟 `getUser` 一模一樣，但裡面沒有商業邏輯，只會「把函式名稱跟參數打包 → 送出去 → 等回應 → 解包回傳」。你以為在呼叫函式，實際上呼叫的是這個替身。
     - Server stub：收到網路請求後，把資料解包，然後呼叫伺服器上真正的 `getUser`，再把結果打包送回去。
     - Stub 通常不是手寫的，而是工具自動產生的。以 gRPC 為例，你先在 `.proto` 檔定義介面，工具就會幫你產生兩邊的 stub 程式碼。
+- 同步呼叫 Synchronous：
+    - 預設情況下，RPC 跟本地函式呼叫一樣是同步的：client 送出呼叫後就會暫停，等 server 把結果傳回來才繼續往下執行。
+    - 如果想同時發出多個 RPC，就要靠 thread（或 lightweight process），讓不同 thread 各自等待自己的呼叫。
+- 找到 server：Name server / 服務發現：
+    - Client stub 怎麼知道要把請求送到哪台機器？第一次被呼叫時，client stub 會先去問 name server「`getUser` 這個服務在哪裡？」，拿到 server 的位址（IP + port）後才開始傳送。
+    - 現代微服務裡這件事叫做服務發現（service discovery），例如 Consul、etcd、Kubernetes 的 DNS。
 
 ```
  客戶端                                         伺服器
@@ -59,8 +68,29 @@ RPC 並沒有像 REST 那麼標準化，主要用於。
 ┌──────▼───────┐       網路傳輸               ┌───────┴──────┐
 │ Client Stub  │ ───── {fn:"getUser", ─────▶ │ Server Stub  │
 │ (假的 getUser)│        args:[123]}          │ (接收並轉呼叫)  │
-└──────────────┘ ◀──── 回傳結果 ────────────── └──────────────┘
+└──────┬───────┘ ◀──── 回傳結果 ────────────── └──────────────┘
+       │ ① 第一次呼叫時先查位址
+┌──────▼───────┐
+│ Name Server  │
+└──────────────┘
 ```
+
+RPC 的幾種呼叫模式：
+
+模式 | 說明 | 例子
+--- | --- | ---
+Synchronous 同步 | 預設模式，送出呼叫後停下來等回應 | `user = getUser(123)`
+Nonblocking 非阻塞 | 送出呼叫後不等回應，繼續做自己的事 | 送出一筆 log，不在乎結果
+Batch-mode 批次 | 把多個 nonblocking 呼叫打包成一批一次送出，減少來回次數 | 一次送出 100 筆寫入
+Broadcast 廣播 | 同時送給多台 server，收齊所有回應 | 問所有節點「你還活著嗎？」
+Callback 回呼 | Client 送出 nonblocking 呼叫，server 做完後反過來呼叫 client 提供的函式通知結果 | 長時間運算完成後通知 client
+
+RPC 的缺點與要注意的地方：
+
+- 會部分失敗 Partial failure：本地函式呼叫要嘛成功、要嘛丟例外，但 RPC 牽涉網路、另一台機器、另一個 process，任何一個環節都可能出錯。最麻煩的是 timeout：你不知道 server 到底有沒有執行，所以重試前要考慮操作是否冪等（idempotent）。
+- 不適合傳大量資料：client 和 server 的執行環境不同，資源管理比較複雜，大檔案通常改用 streaming 或物件儲存（例如 S3）傳。
+- 「看起來像本地呼叫」是一種假象：寫起來跟本地函式一樣，但延遲是網路等級（毫秒），在迴圈裡呼叫 RPC 很容易拖垮效能。
+- 彈性不如 REST：client 和 server 被同一份介面綁在一起，介面一改兩邊都要更新。
 
 #### REST principles
 
@@ -180,58 +210,36 @@ REST API 通常用來對 server 上的資料物件做 CRUD（Create 建立、Rea
 
 ---
 
-# 未整理
+## 其他種類的 API Style
 
-- [How We Design Our APIs at Slack](https://slack.engineering/how-we-design-our-apis-at-slack/)
-- [API design guide](https://cloud.google.com/apis/design)
-- [API note](https://x.com/nikkisiapno/status/1797882928648925515?s=46&t=FIpRVfpSS4pqRodQSt6utQ)
+<video src="https://video.twimg.com/tweet_video/GPNcQ5HbsAA2qyP.mp4" poster="https://pbs.twimg.com/tweet_video_thumb/GPNcQ5HbsAA2qyP.jpg" autoplay loop muted playsinline width="600">
+  <a href="https://x.com/i/status/1797882928648925515"><img src="https://pbs.twimg.com/tweet_video_thumb/GPNcQ5HbsAA2qyP.jpg" width="600" alt="How do the most prominent API architecture styles work?"></a>
+</video>
 
+API 架構風格決定了應用程式之間怎麼溝通，沒有最好的風格，要依照需求選，而不是跟著大家用。
 
-
-https://youtu.be/b4TpO9pYpqk?si=9R7EQ_5sTKqrQeZx
-
-## HTTP Request
-
-- [HTTP Methods](https://www.contrive.mobi/aviorapi/HTTPMETHODS.html)
-- [mdn Authorization](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization)
-- [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status): 需要經驗累積什麼時候用 `panic`（shut down the server and return `500`），什麼時候用 `return err`（won't shut down the server and return `4xx`)
-
-## 驗證
-- [27 成為看起來很強的後端：JWT 跟 Session 怎麼組合？](https://www.youtube.com/watch?v=GxhPQl2guXM&ab_channel=Web%E5%AF%A6%E9%A9%97%E5%AE%A4)
-- [理解 Session 和 Cookie](https://www.youtube.com/watch?v=lNQAl71Abqc&ab_channel=%E4%BB%A3%E7%A0%81%E7%9C%9F%E9%A6%99)
-
-## API 風格
-
-### Remote Procedure Call (RPC)
-
-- [Remote Procedure Call (RPC)](https://www.techtarget.com/searchapparchitecture/definition/Remote-Procedure-Call-RPC)
-- [RPC是什麼，看完就知道了](https://zhuanlan.zhihu.com/p/187560185)
-
-### RESTful API
-
-- [什麼是RESTful API？](https://aws.amazon.com/tw/what-is/restful-api/)
-- [簡明RESTful API設計要點](https://tw.twincl.com/programming/*641y)
-
-REST (Representational State Transfer) is a software architectural style, that is based on a set of six guiding principles (also called constraints) for designing scalable and reliable networked applications. 
-
-Systems that adhere to these principles are often described as RESTful.
-
+Style | 核心特色 | 適用場景
+--- | --- | ---
+REST | HTTP methods + URI 表示資源，stateless | 一般 Web 服務，簡單、好擴展、好維護
+GraphQL | 單一 endpoint，client 指定要哪些欄位，一次 query 拿完 | 資料彼此關聯、想避免 over-fetching 或多次 request
+SOAP | XML-based，不綁定傳輸協定，有 WS-Security | 企業系統，重視安全性與交易可靠度
+[gRPC](https://www.youtube.com/watch?v=nw5YbyA04J0) | Protocol Buffers 序列化，支援雙向 streaming、multiplexing | 分散式系統、微服務間高效溝通
+WebSockets | 單一長連線上的全雙工（full-duplex）通道 | 即時、低延遲、持續交換資料（聊天、即時報價）
+MQTT | 輕量 pub/sub 訊息協定，適應高延遲或不穩定網路 | IoT，大量裝置之間的資料分送
 
 ### OpenAPI
 
-提供開發者可以透過程式去存取應用軟體或網路服務，讓外部應用系統可以透過這些Open API存取原本私有的資源。Open AP 提供了一致的API規格、說明文件，使得API的使用方式對開發者而言易懂易讀，能用最少的成本進行開發及測試，較快的速度應用至商業流程服務上。
+名字很像但是兩件事，而且都不是一種 API 風格：
 
-### GRPC
-
-https://youtu.be/nw5YbyA04J0?si=twzitK1Aumt0OoTq
-
+- **Open API（開放 API）**：把原本私有的資源開放給外部開發者，用程式存取。例如 Google Maps API。
+- **[OpenAPI Specification](https://spec.openapis.org/oas/latest.html)（OAS，前身 Swagger）**：用 YAML / JSON 描述 REST API 的標準格式。有了統一的規格就能自動產生文件、client SDK 和測試，讓開發者用最少的成本理解和串接 API。
 
 ---
 
 ## Reference
 
-[armankhondker/best-system-design-resources](https://github.com/armankhondker/best-system-design-resources)
-
+- [armankhondker/best-system-design-resources](https://github.com/armankhondker/best-system-design-resources)
 
 ## 推薦書單
+
 - Web API 設計原則｜API 與微服務傳遞價值之道
