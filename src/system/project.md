@@ -16,7 +16,7 @@
 - Pastebin https://lnkd.in/eZpfaVjc
 - User Online Status Indicator https://lnkd.in/eW77FXAh
 - How Does Netflix Work? https://lnkd.in/ehqyWMiW
-
+https://youtu.be/LGOnP9Udffo?si=EkFTmwSMxFEGxp7h
 
 ### 第三方實用服務
 - 綠界科技金流串接：https://www.youtube.com/watch?v=qVaVvesLgus&t=20s
@@ -26,4 +26,8 @@
 - 使用 GitHub Action 部署 Node.js 應用：https://www.youtube.com/watch?v=cUmSAGtP-70
 - 使用 Cloudflare 免費加入 SSL 憑證：https://www.youtube.com/watch?v=JZf_Z8p5IJo&t=245s
 - 讓你的網站更安全，使用 Cloudflare 免費加入 SSL 憑證：https://ithelp.ithome.com.tw/articles/10335392
-    
+
+### 複製
+- Tinder https://youtu.be/XFQIW2R_Klk?si=wGWswMABKGy7_zn4
+- Spotify https://youtu.be/_K-eupuDVEc?si=JrFGzs-UFQXMrJPi
+- Shazam https://youtu.be/a0CVCcb0RJM?si=r-9J7vUkh_4AFHhr
