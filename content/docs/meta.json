@@ -1,4 +1,4 @@
 {
   "title": "Software Development Breakdown",
-  "pages": ["index", "backend", "devops", "container", "system", "network", "code", "security", "info"]
+  "pages": ["index", "backend", "devops", "scm", "container", "system", "network", "code", "security", "info"]
 }
