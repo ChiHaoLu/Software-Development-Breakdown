@@ -26,3 +26,6 @@ yarn-error.log*
 next-env.d.ts
 # mdBook leftovers
 book
+
+# local Claude Code config
+.claude/
