@@ -59,6 +59,6 @@ stocks/
 **學習重點**: Observability, monitoring, deployment
 
 - Structured logging (zerolog/zap)
-- Prometheus metrics
+- Prometheus metrics（見 [新服務接入 Prometheus](/devops/monitoring/onboarding)）
 - Health check endpoints
 - Docker + docker-compose
