@@ -99,13 +99,7 @@ CockroachDB、YugabyteDB 這類 distributed SQL 就是為了在水平擴展的�
 
 ## Transaction
 
-交易功能，有些資料庫的操作流程，會一次需要多個 query ，而 transaction 的功能，就可以把這麼多的 query，當作一個統一的單位來操作，是設計安全且可靠的資料庫系統，不可或缺的一環。
-
-交易有 ACID 特性：
-- Atomicity（原子性）：只會是「全部執行」或「全部尚未執行」的其中一種狀態
-- Consistency（ㄧ致性）：交易前後資料的完整性受到保持，例如透過定義 Model Schema
-- Isolation（隔離性）：交易執行時，其他使用者看不到正在處理的資料，也不會受到影響
-- Durability（持久性）：交易完成後將永久被儲存
+有些操作流程一次需要多個 query，transaction 讓它們被當成一個單位，全部成功或全部失敗，並具備 ACID 特性。WAL、MVCC、isolation level 與跨節點交易等細節見 [Transaction](/backend/database/transaction)。
 
 ## 資料庫維運的挑戰
 

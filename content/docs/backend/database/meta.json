@@ -1,1 +1,1 @@
-{ "title": "DataBase", "pages": ["sql-database", "nosql-database", "migration"] }
+{ "title": "DataBase", "pages": ["sql-database", "nosql-database", "transaction", "migration"] }

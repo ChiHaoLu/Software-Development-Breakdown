@@ -168,7 +168,7 @@ WHERE rn = 1;
 - `NOT IN (子查詢)` 若子查詢結果含 `NULL`，整個條件永遠不成立；改用 `NOT EXISTS` 較安全。
 - 用 `COALESCE(column, 預設值)` 處理 `NULL`。
 
-## Transaction 與 ACID
+## Transaction
 
 ```sql
 BEGIN;
@@ -177,28 +177,7 @@ UPDATE accounts SET balance = balance + 100 WHERE id = 2;
 COMMIT;   -- 任一步失敗則 ROLLBACK
 ```
 
-- **Atomicity**：全部成功或全部失敗。
-- **Consistency**：交易前後都符合 constraint。
-- **Isolation**：並行交易互不干擾的程度。
-- **Durability**：commit 後資料不會因當機而遺失。
-
-### Isolation Level
-
-| Level | Dirty Read | Non-repeatable Read | Phantom Read |
-| --- | --- | --- | --- |
-| Read Uncommitted | 可能 | 可能 | 可能 |
-| Read Committed | 不會 | 可能 | 可能 |
-| Repeatable Read | 不會 | 不會 | 可能 |
-| Serializable | 不會 | 不會 | 不會 |
-
-PostgreSQL 預設 Read Committed，MySQL (InnoDB) 預設 Repeatable Read。等級越高越安全，但鎖競爭與重試越多。
-
-需要「讀出來再更新」時（例如扣庫存），用 `SELECT ... FOR UPDATE` 鎖住列，或改寫成單一條件式更新：
-
-```sql
-UPDATE products SET stock = stock - 1
-WHERE id = 42 AND stock > 0;   -- 檢查 affected rows 是否為 1
-```
+ACID、isolation level、lost update 的處理方式等見 [Transaction](/backend/database/transaction)。
 
 ## Index
 
