@@ -18,14 +18,49 @@ title: "DataBase"
 
 讓程式和資料庫**解耦**：程式只透過 DBMS 存取資料，日後要換資料庫時，程式不需要大幅修改。
 
+## 資料模型的演進
+
+| Model | 結構 | 現況 |
+| --- | --- | --- |
+| Flat | 單一張表，像試算表 | 只適合簡單資料 |
+| Hierarchical | 樹狀，每筆資料只有一個 parent | 概念延續到 JSON、XML、document DB |
+| Network | 圖狀，可以有多個 parent | graph database 的前身 |
+| Relational | 多張 table 用 key 關聯 | 現在的主流，見 [SQL DataBase](/backend/database/sql-database) |
+
+- [Top 6 Database Models](https://bytebytego.com/guides/top-6-database-models/)
+
 ## 資料庫的分類
 
-### RDBMS vs. NoSQL
+資料庫的分類其實是從不同角度描述同一個資料庫，每個角度回答一個問題：
+
+| 角度 | 回答的問題 | 選項 |
+| --- | --- | --- |
+| 資料模型 | 資料長什麼樣子？ | relational、document、key-value、wide-column、graph |
+| 工作負載 | 主要拿來做什麼？ | OLTP（交易）、OLAP（分析）、time-series（時間序列） |
+| 儲存佈局 | 磁碟上怎麼排？ | row-oriented、columnar |
+| 儲存媒介 | 資料放在哪裡？ | in-memory、disk |
+| 部署方式 | 怎麼跑起來？ | server 型、嵌入式（檔案型）、managed（雲端代管） |
+
+同一個資料庫在每個角度都各有一個答案：
+
+| 資料庫 | 資料模型 | 工作負載 | 儲存佈局 | 儲存媒介 | 部署方式 |
+| --- | --- | --- | --- | --- | --- |
+| PostgreSQL | relational | OLTP | row | disk | server |
+| SQLite | relational | OLTP | row | disk | 嵌入式 |
+| ClickHouse | relational（用 SQL） | OLAP | columnar | disk | server |
+| Redis | key-value | cache / OLTP | — | in-memory | server |
+| MongoDB | document | OLTP | row（document） | disk | server |
+| Cassandra | wide-column | 大量寫入 | row（依 row key） | disk | server |
+| InfluxDB | time-series | time-series | columnar | disk | server |
+
+選資料庫時，就是依序回答這幾個問題。
+
+### 資料模型：RDBMS vs. NoSQL
 
 - **關聯式資料庫 (RDBMS)**：開源的有 MySQL、PostgreSQL；付費的有 SQL Server、Oracle。見 [SQL DataBase](/backend/database/sql-database)。
-- **非關聯式資料庫 (NoSQL)**：Key-Value（Redis、DynamoDB）、文件型（MongoDB、CouchDB）、圖形（Neo4j）。見 [NoSQL DataBase](/backend/database/nosql-database)。
+- **非關聯式資料庫 (NoSQL)**：Key-Value（Redis、DynamoDB）、文件型（MongoDB、CouchDB）、Wide-Column（Cassandra、HBase）、圖形（Neo4j）。見 [NoSQL DataBase](/backend/database/nosql-database)。
 
-### OLTP vs. OLAP
+### 工作負載：OLTP vs. OLAP
 
 | | OLTP (Online Transaction Processing) | OLAP (Online Analytical Processing) |
 | --- | --- | --- |
@@ -33,7 +68,14 @@ title: "DataBase"
 | 場景 | 電商、銀行 | BI、財務報表、data warehouse |
 | 例子 | MySQL、PostgreSQL、MongoDB | BigQuery、Redshift、ClickHouse |
 
-### Row-oriented vs. Columnar
+OLAP 的資料表常用以下兩種 schema 設計：
+
+- **Star Schema**：中間一張 fact table 存數值（如銷售金額），周圍的 dimension table 存描述（如時間、商品），JOIN 少、查詢快。
+- **Snowflake Schema**：把 dimension table 再正規化拆細，重複資料較少，但 JOIN 變多。
+
+**Time-series** 是另一種常見的工作負載：資料都帶時間戳記、大量持續寫入、很少修改，查詢多是「某段時間內的趨勢或聚合」，例如監控 metric、IoT 感測資料、股價。專門的資料庫有 InfluxDB、TimescaleDB（PostgreSQL extension）、Prometheus。
+
+### 儲存佈局：Row-oriented vs. Columnar
 
 儲存方式通常對應上面的 OLTP / OLAP：
 
@@ -47,10 +89,16 @@ Row 2: [2, "Bob",   60]         name:  ["Alice", "Bob"]
 - **Row-oriented**：一整列存在一起，適合一次讀寫整筆資料。例如 MySQL、PostgreSQL、MongoDB。
 - **Columnar**：同一欄存在一起，只讀需要的欄位、壓縮率高，適合大量聚合計算。例如 BigQuery、Redshift、ClickHouse。
 
-### 伺服器型 vs. 檔案型
+### 儲存媒介：In-memory vs. Disk
+
+- **In-memory**：資料放在記憶體，讀寫極快，但容量受記憶體大小限制，重啟可能遺失資料（多數會搭配快照或 log 寫回磁碟）。常用於 cache、session、排行榜。例如 Redis、Memcached。
+- **Disk**：資料放在硬碟或 SSD，容量大、可持久保存，多數資料庫屬於這類。
+
+### 部署方式：伺服器型 vs. 檔案型
 
 - **伺服器型**：需要安裝並啟動資料庫 server，多數 RDBMS 屬於這類。
 - **檔案型**：一個檔案就是一個資料庫，例如 SQLite、Microsoft Access，適合資料量小、不會多人同時寫入的情境。
+- **Managed**：由雲端廠商代管 server，備份、patch、擴展都自動處理，例如 Amazon RDS、Cloud SQL、MongoDB Atlas。
 
 ## SQL vs. NoSQL
 
@@ -81,6 +129,9 @@ CockroachDB、YugabyteDB 這類 distributed SQL 就是為了在水平擴展的�
   - 快速 key-value 存取、不需要強一致性：Redis
   - 大量資料的全文或彈性搜尋：Elasticsearch
   - 跨多台機器的海量資料、無單點故障：Cassandra
+
+- [iQIYI Database Selection Trees](https://bytebytego.com/guides/iqiyi-database-selection-trees/)
+- [How to Choose the Right Database](https://bytebytego.com/guides/how-to-choose-the-right-database/)
 
 ### CAP 定理
 
