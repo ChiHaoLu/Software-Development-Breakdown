@@ -61,17 +61,44 @@ SQL Database 也就是關聯式資料庫 (Relational Database, RDBMS)：資料�
 
 | 資料庫 | 特色 | 常見場景 |
 | --- | --- | --- |
-| PostgreSQL | 功能完整、標準相容度高，支援 JSONB、CTE、window function 與豐富的 extension | 通用首選、需要複雜查詢的服務 |
-| MySQL / MariaDB | 普及、生態系成熟，InnoDB 引擎支援 transaction | Web 應用、讀多寫少的服務 |
-| SQLite | 嵌入式、單一檔案、免架設 server | 行動 App、桌面軟體、測試、小型工具 |
-| Oracle | 商用、企業級功能與支援 | 金融、電信等大型企業系統 |
-| SQL Server | Microsoft 生態系整合 | .NET / Windows 環境的企業系統 |
+| PostgreSQL | 開源的 object-relational DB，源自 UC Berkeley 的 POSTGRES 專案；功能豐富，支援 JSONB、CTE、window function 與 extension | 通用首選、需要複雜查詢的服務 |
+| MySQL | 開源、易用、社群龐大，現由 Oracle 開發；InnoDB 引擎支援 transaction | Web 應用、讀多寫少的服務 |
+| MariaDB | MySQL 被 Oracle 收購後分支出來的開源替代品，與 MySQL 高度相容 | 想避開 Oracle 授權的 MySQL 使用者 |
+| SQLite | 一個函式庫而非 server：嵌入在應用程式內、單一檔案、零設定 | 行動 App、桌面軟體、測試、小型工具 |
+| Oracle | 商用，全球最常見的企業級資料庫之一 | 金融、電信等大型企業系統 |
+| SQL Server (MSSQL) | Microsoft 開發，擅長大量交易處理、BI 與分析 | .NET / Windows 環境的企業系統 |
+
+其他類型的資料庫也能表達資料之間的關聯，只是方式不同：關聯式資料庫用 foreign key 或中介表 (intersection table)；MongoDB 這類 NoSQL 則用嵌入 (embedding) 或引用 (referencing)。
+
+## 各資料庫優缺點
+
+整理自 [後端工程師的第一堂課 (15)：資料庫 — 介紹與比較](https://medium.com/johnliu-%E7%9A%84%E8%BB%9F%E9%AB%94%E5%B7%A5%E7%A8%8B%E6%80%9D%E7%B6%AD/%E5%BE%8C%E7%AB%AF%E5%B7%A5%E7%A8%8B%E5%B8%AB%E7%9A%84%E7%AC%AC%E4%B8%80%E5%A0%82%E8%AA%B2-15-%E8%B3%87%E6%96%99%E5%BA%AB-%E4%BB%8B%E7%B4%B9%E8%88%87%E6%AF%94%E8%BC%83-b942818e4b15)（2022）。
 
 ### MySQL
+
+- **優點**：開源、更新快；跨語言、跨作業系統；多執行緒，能充分利用資源；社群活躍、資料好找；使用成本低。
+- **缺點**：原文認為效能較適合中小型應用、安全機制較弱且設定複雜（多指早期版本，現代 InnoDB 已大幅改善）。
+- MySQL 本身沒有圖形介面，MySQL Workbench、phpMyAdmin 是另外的操作工具，不要搞混。
 
 - [一小时MySQL教程](https://www.youtube.com/watch?v=nZlH5in_660&ab_channel=GeekHour)
 
 ### PostgreSQL
 
+- **優點**：開源且由社群主導（不屬於單一公司）；transaction 等核心機制驗證嚴謹；stored procedure、view 等進階功能比 MySQL 強；內建地理資料型別與函式（PostGIS），適合地理相關應用。
+- **缺點**：功能多、體積較大，對小型伺服器是負擔。原文另提到「複雜查詢效能較差」，但這點有爭議，PostgreSQL 的 query planner 通常被認為很擅長複雜查詢。
+- 沒有特殊需求時，PostgreSQL 與 MySQL 都是可以任選的通用資料庫。
+
 - [PostgreSQL Tutorial](https://www.postgresqltutorial.com/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/current/)
+
+### SQL Server
+
+- **優點**：與微軟生態系（C#、報表、BI 工具）整合佳；學習曲線低，內建圖形化管理工具；transaction 安全控制良好。
+- **缺點**：專有軟體、原始碼封閉，社群討論較少；引擎較吃資源。
+- 過去幾乎只能用在微軟環境，現在相容性已提升（也支援 Linux）。
+
+### Oracle
+
+- **優點**：安全性高，具最高等級的認證；大型運算與查詢效能出色；功能齊全（多種儲存格式、synonym、package 等）。
+- **缺點**：授權昂貴、硬體要求高；學習門檻高，需要資深人員支援。
+- 主要用在銀行、政府機關等大型組織，新創與個人專案很少使用。

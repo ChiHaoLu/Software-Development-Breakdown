@@ -260,35 +260,7 @@ db.Query("SELECT * FROM users WHERE email = $1", email)
 
 ### Migration
 
-**Schema 是「結構現在長什麼樣子」，migration 是「怎麼把結構從一個版本改到下一個版本」。** Migration 是帶有版本號的變更腳本，通常附上反向的 down script：
-
-```text
-migrations/
-├─ 0001_create_users.up.sql        CREATE TABLE users (...)
-├─ 0002_add_users_name.up.sql      ALTER TABLE users ADD COLUMN name VARCHAR(100);
-├─ 0002_add_users_name.down.sql    ALTER TABLE users DROP COLUMN name;
-└─ 0003_index_users_email.up.sql   CREATE INDEX ...
-```
-
-Migration 工具（如 golang-migrate、Flyway、Liquibase、Prisma Migrate）會在資料庫裡記錄目前的版本，部署時只執行尚未套用的腳本。可以用 Git 來類比：
-
-| | 資料庫 | 程式碼 |
-| --- | --- | --- |
-| 某個時間點的樣子 | Schema | 某個 commit 的檔案內容 |
-| 一次變更 | Migration | 一個 commit 的 diff |
-| 依序套用所有變更 | 從 0001 跑到最新版 | 從第一個 commit 走到 HEAD |
-
-也就是說，目前的 schema 就是所有 migration 依序套用後的結果。
-
-為什麼不直接在資料庫上下 DDL 改 schema？因為資料庫裡已經有資料，而且通常有多個環境：
-
-- **可重現**：本機、staging、production 都照同樣順序跑同樣的腳本，結構才會一致，不會出現沒人知道的手動 `ALTER`。
-- **保留資料**：資料庫不能像程式碼一樣整個覆蓋。例如新增 `NOT NULL` 欄位，要拆成「加可為 NULL 的欄位 → backfill → 加 constraint」，這些步驟與順序要靠 migration 記錄。
-- **可 review、可回滾**：migration 檔跟程式碼一起進 PR，出問題時有 down script 可以退回。
-
-另一種是**宣告式**的做法（如 Prisma 的 `schema.prisma`、Atlas）：只維護想要的最終 schema，由工具比對資料庫目前的狀態，自動產生 migration。這時 schema 檔是「目標」，migration 是工具算出的「差異」。
-
-對大表做 `ALTER` 前，先確認是否會鎖表，必要時改用線上 schema 變更工具（如 gh-ost、pt-online-schema-change）或分批執行。
+Schema 變更要透過版本化的 migration 管理，詳見 [DB Migration](/backend/database/migration)。
 
 ## 延伸閱讀
 
