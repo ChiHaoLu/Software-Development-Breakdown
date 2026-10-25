@@ -6,6 +6,11 @@ SQL Database 也就是關聯式資料庫 (Relational Database, RDBMS)：資料�
 
 - [SQL 語言](/backend/database/sql-database/sql)：SQL 語法、JOIN、Transaction、Index 與在應用程式中使用 SQL 的筆記。
 
+## What is structured data?
+
+結構化資料的意思他的編排是固定的，format 等都是預先定義好的。
+
+
 ## SQL Database 與 SQL 語言
 
 兩者常被混著叫「SQL」，但指的是不同層次的東西：
@@ -21,11 +26,16 @@ SQL Database 也就是關聯式資料庫 (Relational Database, RDBMS)：資料�
 
 ## 關聯式資料庫的特性
 
+> Relational databases, or relational database management systems (RDBMSs)
+
+![關聯式資料庫以 table 儲存資料，table 之間透過 ID 欄位互相關聯](relational-db.png)
+
 - **事先定義 schema**：每張 table 的欄位、型別與 constraint 在寫入前就要決定，資料格式由資料庫保證。
-- **以 key 建立關聯**：用 primary key 識別每一列，用 foreign key 指向其他 table，查詢時再用 `JOIN` 組合。
+- **以 key 建立關聯**：用 primary key 識別每一列，用 foreign key (e.g., unique identifiers) 指向其他 table，查詢時再用 `JOIN` 組合。
 - **支援 transaction 與 ACID**：多個寫入可以包成一個交易，全部成功或全部失敗，適合金流、訂單、庫存這類要求一致性的資料。
 - **查詢彈性高**：資料正規化後，可以用 SQL 從不同角度組合查詢，不必事先為每種讀取方式設計資料格式。
 - **擴展以 vertical scaling 為主**：單機升級最直接；水平擴展需要 read replica、partitioning 或 sharding，複雜度較高。
+
 
 ## 什麼時候選 SQL Database
 
