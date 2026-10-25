@@ -107,6 +107,17 @@ CockroachDB、YugabyteDB 這類 distributed SQL 就是為了在水平擴展的�
 - Isolation（隔離性）：交易執行時，其他使用者看不到正在處理的資料，也不會受到影響
 - Durability（持久性）：交易完成後將永久被儲存
 
+## 資料庫維運的挑戰
+
+- **資料量暴增**：感測器、連網設備等來源持續湧入資料，需要有效率地整理與管理。
+- **資料安全**：既要防止外洩，又要讓有權限的人方便存取。
+- **即時存取**：業務決策需要即時的資料，查詢要能快速回應。
+- **維護成本**：要持續監控、做預防性維護、升級與上 patch；資料庫越複雜，需要的人力越多。
+- **擴展性**：很難預估未來需要多少容量，自建機房 (on-premises) 尤其難。
+- **資料落地與延遲**：有些資料依法規必須存放在特定地區 (data residency / sovereignty)，或有低延遲需求，只能放在自建機房。
+
+雲端的 managed database（如 Amazon RDS、Cloud SQL、Oracle Autonomous Database）會自動處理備份、patch、擴展等工作，減輕這些維運負擔。
+
 ## Reference
 
 - [什麼是資料庫？](https://www.oracle.com/tw/database/what-is-database/)
