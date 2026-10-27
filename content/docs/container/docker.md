@@ -18,3 +18,6 @@ https://youtu.be/t779DVjCKCs?si=DtCfOiutIxWEGler
 - [Complete Docker Course - From BEGINNER to PRO! (Learn Containers)](https://www.youtube.com/watch?v=RqTEHSBrYFw&t=2886s&pp=ygUPZG9ja2VyIHR1dG9yaWFs)
 - [Docker —— 從入門到實踐](https://philipzheng.gitbook.io/docker_practice/)
 - [30分钟Docker入门教程](https://www.youtube.com/watch?v=Ozb9mZg7MVM&ab_channel=GeekHour)
+## 底層原理
+
+Container 其實是被 namespace 與 cgroup 限制住的 process，見 [Namespace & cgroup](/os/linux/namespace-cgroup)。
