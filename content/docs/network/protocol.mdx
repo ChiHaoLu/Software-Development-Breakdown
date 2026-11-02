@@ -1,0 +1,198 @@
+---
+title: "Network Protocols"
+---
+
+import networkMeme from './network-meme.jpg';
+
+<img src={networkMeme.src} alt="用喝水比喻各種網路傳輸方式：VPN、SSH、TCP、UDP、P2P、Multicast、Broadcast" width={300} />
+
+**在瀏覽器輸入一個網址按下 Enter，背後依序會用到：DNS 把名字換成 IP、TCP 建立連線、（TLS 加密）、HTTP 送出請求。** 這頁講分層模型（OSI、TCP/IP）和 IP，路上用到的其他協定各有分頁：[TCP vs UDP](/network/tcp-udp)、[DNS](/network/dns)、[HTTP](/network/http)、[HTTPS / SSL / TLS](/network/security)。
+
+```text
+https://api.example.com/books/42
+   │
+   ├─ 1. DNS：api.example.com → 93.184.216.34
+   ├─ 2. TCP：三次握手連到 93.184.216.34:443
+   ├─ 3. TLS：交換憑證與金鑰（見 HTTPS / SSL / TLS）
+   └─ 4. HTTP：GET /books/42 → 200 OK
+```
+
+## OSI Model
+
+OSI 把網路通訊切成 7 層，每層只跟上下層打交道：上層把資料交給下層時會**加上自己的 header（封裝）**，對方收到後由下往上一層層拆掉。實務上用的是比較簡化的 [TCP/IP 四層模型](#tcpip-model)，但面試和除錯時大家還是習慣用 OSI 的層號講話（「L4 load balancer」、「L7 proxy」）。
+
+| OSI 層 | 名稱 | TCP/IP 層 | 資料單位 | 協定 / 例子 | 設備 |
+| --- | --- | --- | --- | --- | --- |
+| 7 | Application（應用層） | Application | Data | HTTP、DNS、SMTP、SSH | L7 load balancer、API Gateway |
+| 6 | Presentation（表現層） | Application | Data | TLS、編碼、壓縮 | |
+| 5 | Session（會話層） | Application | Data | 連線的建立與維持 | |
+| 4 | Transport（傳輸層） | Transport | Segment / Datagram | TCP、UDP | L4 load balancer |
+| 3 | Network（網路層） | Internet | Packet | IP、ICMP | Router |
+| 2 | Data Link（資料連結層） | Link | Frame | Ethernet、Wi-Fi、ARP | Switch |
+| 1 | Physical（實體層） | Link | Bit | 網路線、光纖、電波 | Hub、網卡 |
+
+
+![OSI 七層模型：發送端由上往下逐層封裝 header，接收端由下往上逐層拆開](0295-osi-model.jpeg)
+
+> 圖片來源：[ByteByteGo](https://blog.bytebytego.com)
+>
+> 接收端跟發送端是兩個不同 device，可能單純傳一個 data 溝通這樣。
+
+1. 當設備 A 要傳送 `DATA` 給設備 B，他如果要使用 HTTP protocol，首先需要加上 HTTP header
+2. 接下來根據傳輸協議的決定加上 TCP 或 UDP header，成為 `TCP Segment`/`UDP Packet`，會包含 source port、destination port 和 sequence number
+3. 再來，會在網路層加上 IP header，成為 `IP Datagram`，包含了 source 和 destination IP addresses
+4. 在資料連接層加上 MAC header，成為 `Frame`，包含了 source 和 destination MAC addresses
+   - **MAC address** 是每張網卡出廠時就燒進去的 48-bit 硬體位址，寫成 `00:1A:2B:3C:4D:5E`，前 24 bits 代表製造商。
+   - 它只在**同一個區網內**有意義：IP 是最終的收件地址，MAC 是「這一站要交給隔壁哪台機器」，所以每經過一個 router 就會換一次。
+   - 知道對方 IP 但不知道 MAC 時，會用 **ARP** 在區網裡廣播「誰是 `192.168.1.1`？」，對方回自己的 MAC。`ip neigh`（或 `arp -a`）可以看本機快取的對照表。
+5. 這整個包裝起來的訊息會透過物理層傳輸（以 `binary bits` 形式） 
+6. 接下來會反過來一一拆解，知道要送到哪個設備、哪個 IP、最後是哪個程式，如何呈現等
+
+```text
+發送端                                          接收端
+[HTTP data]                                     [HTTP data]
+[TCP hdr][HTTP data]                            ▲ 拆 TCP header
+[IP hdr][TCP hdr][HTTP data]                    ▲ 拆 IP header
+[Eth hdr][IP hdr][TCP hdr][HTTP data][Eth trl]  ▲ 拆 Ethernet frame
+        ──────────── 實體線路 ────────────▶
+```
+
+**每一層各自負責「送到哪」：**
+
+- **L2 MAC address**：同一個區網內，下一跳是哪張網卡。每經過一個 router 就會換掉。
+- **L3 IP address**：整條路的起點與終點，從頭到尾不變（不考慮 [NAT](#nat)）。
+- **L4 port**：送到那台機器上的哪個 process，例如 `:443` 是 HTTPS、`:5432` 是 PostgreSQL。
+
+所以「L4 load balancer」只看 IP 和 port 就轉發，速度快但看不懂內容；「L7 load balancer」會拆開 HTTP，可以依 path、header、cookie 分流（見 [Proxy](/backend/proxy)）。
+
+## TCP/IP Model
+
+**OSI 是教科書上的參考模型，TCP/IP 才是網際網路實際在跑的協定組（protocol suite）。** 名字取自其中最核心的兩個協定 TCP 和 IP，但它包含的是一整組協定。OSI 當年規劃的那套協定幾乎沒人用，最後留下來的只有它的分層概念和層號。
+
+TCP/IP 把 OSI 的 5–7 層併成一個 Application 層，1–2 層併成一個 Link 層：
+
+| TCP/IP 層 | 對應 OSI | 負責什麼 | 協定 | 在哪裡實作 |
+| --- | --- | --- | --- | --- |
+| Application | 5–7 | 應用程式之間要講什麼 | HTTP、DNS、TLS、SSH、SMTP | 你的程式（user space） |
+| Transport | 4 | process 對 process：port、可靠性、流量控制 | TCP、UDP、QUIC* | OS kernel |
+| Internet | 3 | 主機對主機：定址與跨網路路由 | IP、ICMP | OS kernel |
+| Link | 1–2 | 同一段網路內，相鄰兩台機器之間怎麼送 | Ethernet、Wi-Fi、ARP | 網卡 driver 與硬體 |
+
+> \* QUIC 實際上跑在 UDP 之上、在 user space 實作，但它做的是傳輸層的工作（連線、可靠性、壅塞控制）。
+>
+> 有些教科書（例如 Kurose 的《Computer Networking》）會把 Link 再拆成 Data Link 和 Physical，變成 **五層模型**。
+
+### Socket：程式和 kernel 的分界
+
+寫程式時你只碰得到 Application 層。Transport 以下都在 kernel 裡，中間的介面就是 **socket**：
+
+```text
+你的程式   conn.Write([]byte("GET / HTTP/1.1 ..."))
+──────────────── socket API（send / recv）────────────────
+kernel     TCP：切成 segment、編序號、等 ACK、重傳
+           IP ：加上來源 / 目的 IP，查 routing table
+driver     Ethernet：查 ARP 拿到下一跳的 MAC，包成 frame
+──────────────────────────────────────────────────────────
+網卡       送上線路
+```
+
+所以程式只要說「送這些 bytes 到 `93.184.216.34:443`」，握手、重傳、路由都不用管。`ss -tan`、`netstat` 看到的連線狀態，就是 kernel 裡 TCP 層的狀態。
+
+### 封包怎麼跨網路送到對方
+
+不是每台設備都要處理全部四層：**終端主機**四層都有，**router** 只拆到 Internet 層看目的 IP，**switch** 只看到 Link 層的 MAC。
+
+```text
+  Client          Router A         Router B         Server
+  Application                                       Application
+  Transport                                         Transport
+  Internet ──────▶ Internet ──────▶ Internet ──────▶ Internet
+  Link             Link             Link             Link
+         MAC: C→A          MAC: A→B         MAC: B→S
+         IP : C→S          IP : C→S         IP : C→S    ← IP 不變，MAC 每一跳都換
+```
+
+每經過一個 router，IP header 的 **TTL 減 1**，減到 0 就丟掉並回一個 ICMP 錯誤，避免封包在迴圈裡永遠轉下去。`traceroute` 就是利用這點：依序送出 TTL = 1、2、3… 的封包，看每一跳是哪台 router 回的。
+
+### MTU 與 MSS
+
+Link 層一次能送的大小有上限，叫 **MTU**（Ethernet 是 1500 bytes）。扣掉 IP header（20）和 TCP header（20），TCP 每個 segment 最多帶 **MSS = 1460 bytes** 的資料，大於這個的資料 TCP 會自己切。
+
+```text
+|←───────────────── MTU 1500 ─────────────────→|
+[IP hdr 20][TCP hdr 20][      data ≤ 1460      ]
+```
+
+> 走 VPN、VXLAN 等 tunnel 時會多包一層 header，可用的 MTU 變小。如果路上有設備擋掉 ICMP，「封包太大」的通知傳不回來，就會出現**小請求正常、大請求卡住**的怪問題，這通常就是 MTU 不一致。
+
+## IP
+
+IP 負責把 packet 從一台機器送到另一台機器，但**不保證送到、不保證順序**，這些交給上面的 [TCP](/network/tcp-udp)。
+
+### IPv4 vs IPv6
+
+| | IPv4 | IPv6 |
+| --- | --- | --- |
+| 長度 | 32 bits | 128 bits |
+| 表示法 | `192.168.1.10` | `2001:db8::1`（連續的 0 可以用 `::` 省略） |
+| 數量 | 約 43 億，早已不夠用 | 約 3.4 × 10³⁸，幾乎用不完 |
+| 位址不夠怎麼辦 | 靠 [NAT](#nat) 讓一堆私有 IP 共用一個公有 IP | 每台裝置都能有公有位址，不需要 NAT |
+| 設定 | DHCP 或手動 | 可以用 SLAAC 自動產生，也能用 DHCPv6 |
+| Header | 長度不固定，有 checksum | 固定 40 bytes、沒有 checksum，router 處理較快 |
+| 取得 MAC 位址 | ARP | NDP（Neighbor Discovery） |
+| Loopback | `127.0.0.1` | `::1` |
+
+兩者**不相容**，所以現在多數環境是 **dual stack**：同時配 IPv4 和 IPv6，[DNS](/network/dns) 有 `AAAA` 紀錄就優先走 IPv6。
+
+### CIDR 與 Subnet
+
+`10.0.1.0/24` 表示前 24 bits 是網路位址，後 8 bits 留給主機，所以這個 subnet 有 2⁸ = 256 個位址。subnet mask 就是同一件事換個寫法：`/24` = `255.255.255.0`。
+
+| CIDR | Mask | 位址數 | 常見用途 |
+| --- | --- | --- | --- |
+| `/16` | `255.255.0.0` | 65,536 | 一整個 VPC |
+| `/24` | `255.255.255.0` | 256 | 一個 subnet |
+| `/32` | `255.255.255.255` | 1 | 指定單一台主機（例如防火牆規則） |
+
+> 在 AWS 一個 subnet 會被保留 5 個位址（網路位址、router、DNS、保留、廣播），所以 `/24` 實際可用的是 251 個。
+
+**私有 IP（RFC 1918）** 不會在網際網路上被路由，要出去得經過 [NAT](#nat)：
+
+- `10.0.0.0/8`
+- `172.16.0.0/12`
+- `192.168.0.0/16`
+
+### NAT
+
+**NAT（Network Address Translation）讓一整個內網的私有 IP 共用一個公有 IP 上網。** 位在內網邊界的 router 會在封包出去時，把「來源 IP:port」改成自己的公有 IP 和一個新的 port，並記在轉換表裡；回應回來時再查表改回去，送給內網那台機器。
+
+```text
+內網                      NAT（家用路由器、AWS NAT Gateway）           網際網路
+192.168.1.10:50000 ──▶  來源改成 203.0.113.5:61000          ──▶  93.184.216.34:443
+192.168.1.10:50000 ◀──  查表改回                             ◀──  回給 203.0.113.5:61000
+
+轉換表：203.0.113.5:61000 ↔ 192.168.1.10:50000
+```
+
+這就是上面說「IP 從頭到尾不變」的例外：經過 NAT 時，來源 IP 會被換掉。實務上會遇到的影響：
+
+- **外面不能主動連進來**：轉換表只會因為內網主動連出去而建立，外面直接打進來查不到對應的機器。這順便擋掉了外部連線，但要讓外部連到內網的 server，得設 port forwarding 或放 load balancer。
+- **Server 看到的是 NAT 的 IP**：同一個公司、甚至同一個電信業者（CGNAT）底下的大量使用者會共用同一個 IP，用 IP 做 rate limit 或封鎖時容易誤傷。真正的 client IP 要靠 proxy 帶的 `X-Forwarded-For` 之類的 header。
+- **P2P 很難直連**：兩邊都在 NAT 後面時，誰都無法主動連到對方。視訊通話、線上遊戲會用 STUN 打洞，打不通再透過 TURN server 轉送。
+- **雲端**：AWS 的 private subnet 沒有公有 IP，要連外（例如下載套件）得經過 **NAT Gateway**；public subnet 則透過 **Internet Gateway** 把 instance 的私有 IP 一對一對應到它的公有 IP。
+
+IPv6 位址夠多，每台裝置都能有自己的公有位址，原則上不需要 NAT，改用防火牆控制誰能連進來。
+
+### 常見的特殊位址
+
+| 位址 | 意思 |
+| --- | --- |
+| `127.0.0.1` | 自己（loopback） |
+| `0.0.0.0` | 沒有位址；server 綁在這上面表示「監聽所有網卡」 |
+| `192.168.1.1` | 家用路由器常見的 gateway（私有 IP） |
+| `255.255.255.255` | 廣播給同一個區網的所有人 |
+| `8.8.8.8` | Google 的公共 DNS |
+| `169.254.0.0/16` | DHCP 失敗時自動配的位址（APIPA / link-local）；雲端的 metadata server `169.254.169.254` 也在這段 |
+| `224.0.0.0/4` | Multicast 位址範圍，例如 `224.0.0.1` 是「本網段所有主機」 |
+
+> 寫 server 時綁 `127.0.0.1` 只有本機連得到；放進 container 裡要讓外面連，得綁 `0.0.0.0`。
