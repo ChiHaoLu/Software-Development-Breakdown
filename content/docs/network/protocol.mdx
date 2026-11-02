@@ -17,6 +17,22 @@ https://api.example.com/books/42
    └─ 4. HTTP：GET /books/42 → 200 OK
 ```
 
+## 網路的範圍：PAN、LAN、MAN、WAN
+
+依照涵蓋的範圍，網路由小到大分成四種：
+
+| 類型 | 全名 | 範圍 | 例子 | 常見技術 |
+| --- | --- | --- | --- | --- |
+| **PAN** | Personal Area Network | 一個人身邊幾公尺內 | 手機連藍牙耳機、Apple Watch | Bluetooth、USB、NFC |
+| **LAN** | Local Area Network | 一個家、一間辦公室、一棟建築 | 家裡的 Wi-Fi、公司內網 | Ethernet、Wi-Fi，用 switch 串起來 |
+| **MAN** | Metropolitan Area Network | 一座城市、相鄰的幾個園區 | 大學多個校區互連、城市的光纖網路 | 光纖、Metro Ethernet |
+| **WAN** | Wide Area Network | 跨城市、跨國家 | 網際網路、企業總部連分公司 | 光纖骨幹、MPLS、VPN、SD-WAN，用 router 串起來 |
+
+- **網際網路就是最大的 WAN**，由無數個 LAN 透過 [router](#router-是什麼) 連在一起。
+- 本頁常說的「**區網**」就是 LAN：[ARP](#arp從-ip-查-mac) 的廣播、[MAC](#osi-model) 位址都只在同一個 LAN 內有效，出了 LAN 就要交給 router。
+- 家用路由器背後會看到 **WAN port**（接電信業者的線，拿到公有 IP）和 **LAN port**（接家裡的裝置，發私有 IP），中間就是 [NAT](#nat) 在轉換。
+- 雲端的 VPC 可以想成雲上的 LAN；公司機房透過 VPN 或專線（如 AWS Direct Connect）連到 VPC，走的就是 WAN。
+
 ## OSI Model
 
 OSI 把網路通訊切成 7 層，每層只跟上下層打交道：上層把資料交給下層時會**加上自己的 header（封裝）**，對方收到後由下往上一層層拆掉。實務上用的是比較簡化的 [TCP/IP 四層模型](#tcpip-model)，但面試和除錯時大家還是習慣用 OSI 的層號講話（「L4 load balancer」、「L7 proxy」）。
@@ -27,7 +43,7 @@ OSI 把網路通訊切成 7 層，每層只跟上下層打交道：上層把資�
 | 6 | Presentation（表現層） | Application | Data | TLS、編碼、壓縮 | |
 | 5 | Session（會話層） | Application | Data | 連線的建立與維持 | |
 | 4 | Transport（傳輸層） | Transport | Segment / Datagram | TCP、UDP | L4 load balancer |
-| 3 | Network（網路層） | Internet | Packet | IP、ICMP | Router |
+| 3 | Network（網路層） | Internet | Packet | IP、ICMP | [Router](#router-是什麼) |
 | 2 | Data Link（資料連結層） | Link | Frame | Ethernet、Wi-Fi、ARP | Switch |
 | 1 | Physical（實體層） | Link | Bit | 網路線、光纖、電波 | Hub、網卡 |
 
@@ -97,6 +113,34 @@ driver     Ethernet：查 ARP 拿到下一跳的 MAC，包成 frame
 ```
 
 所以程式只要說「送這些 bytes 到 `93.184.216.34:443`」，握手、重傳、路由都不用管。`ss -tan`、`netstat` 看到的連線狀態，就是 kernel 裡 TCP 層的狀態。
+
+### Router 是什麼
+
+**Router（路由器）負責把封包從一個網路送到另一個網路。** 它同時接著好幾個網路（每個介面接一個），收到封包後拆到 L3 看**目的 IP**，查自己的 **routing table（路由表）** 決定下一站要交給誰，再從對應的介面送出去。
+
+最容易和它搞混的是 switch：
+
+| | Switch（交換器） | Router（路由器） |
+| --- | --- | --- |
+| 工作在哪一層 | L2（Link） | L3（Network / Internet） |
+| 看封包的什麼 | 目的 **MAC** | 目的 **IP** |
+| 負責範圍 | **同一個** LAN 內的裝置互傳 | **不同**網路之間 |
+| 查的表 | MAC 位址表（哪個 MAC 在哪個 port） | Routing table（哪個網路往哪裡送） |
+| 廣播 | 會轉給同一個 LAN 的所有人 | 不轉送，廣播就停在 LAN 的邊界 |
+
+一台家用 router 的 routing table 大概長這樣：
+
+```text
+目的網路            下一站（next hop）      從哪個介面送出
+192.168.1.0/24      直接送（就是本地網路）   LAN
+0.0.0.0/0           電信業者的 router        WAN    ← default route：其他不認得的全部往這丟
+```
+
+- 查表時會選**最具體（prefix 最長）**的那條：`192.168.1.37` 同時符合 `/24` 和 `/0`，選 `/24`，直接在區網送；`142.250.1.1` 只符合 `/0`，就交給電信業者。
+- 你電腦設定裡的 **default gateway**，就是「不在本地網路的封包都交給它」的那台 router。在電腦上用 `ip route`（Linux）或 `netstat -rn`（macOS）可以看到自己的 routing table。
+- 網際網路上的 router 之間，會用 **BGP** 互相交換「哪些網路可以從我這裡到」，各家電信業者、雲端業者就是這樣把整個網際網路串起來的。
+
+> 家裡那台「Wi-Fi 分享器 / 路由器」其實是 router、switch、Wi-Fi 基地台、NAT、DHCP server 合體，見最後的[綜合例子](#綜合例子合租公寓共用一台-wi-fi)。
 
 ### 封包怎麼跨網路送到對方
 
@@ -341,7 +385,15 @@ arp -a        # macOS / Windows
 
 ### NAT
 
-**NAT（Network Address Translation）讓一整個內網的私有 IP 共用一個公有 IP 上網。** 位在內網邊界的 router 會在封包出去時，把「來源 IP:port」改成自己的公有 IP 和一個新的 port，並記在轉換表裡；回應回來時再查表改回去，送給內網那台機器。
+**NAT（Network Address Translation）讓一整個內網的私有 IP 共用一個公有 IP 上網。** IPv4 位址早就不夠用，網際網路卻還能持續成長，靠的就是 NAT。
+
+#### 運作流程
+
+1. 在公司或家裡，手機、電腦等多台裝置共用一台 router，而這台 router 只有**一個公有 IP**。
+2. 裝置要上網時，把請求送給 router，請求的來源是裝置自己的**私有 IP**（例如 `192.168.1.10:50000`）。
+3. Router 的 NAT 把來源的私有 IP **換成自己的公有 IP**（通常連 port 一起換，例如 `203.0.113.5:61000`），並把這組對應記在**轉換表**裡。
+4. 改寫過的請求送上網際網路，對方只看得到 router 的公有 IP。
+5. 回應回來時，NAT **查轉換表**，把目的地的公有 IP 換回正確的私有 IP，送給當初發出請求的那台裝置。
 
 ```text
 內網                      NAT（家用路由器、AWS NAT Gateway）           網際網路
@@ -351,14 +403,75 @@ arp -a        # macOS / Windows
 轉換表：203.0.113.5:61000 ↔ 192.168.1.10:50000
 ```
 
-這就是上面說「IP 從頭到尾不變」的例外：經過 NAT 時，來源 IP 會被換掉。實務上會遇到的影響：
+> 一個公有 IP 能分給很多台裝置，靠的是 **port**：不同裝置的連線在第 3 步會被配到不同的公有 port，回應回來時就用 port 分辨該交給誰。這種「多對一」的 NAT 也叫 **PAT**（Port Address Translation）或 NAT overload，家用路由器用的就是這種。
+
+#### NAT 的用途
+
+- **節省公有 IP**：沒有 NAT 的話，IPv4 位址會更早用完，網際網路的成長會被嚴重限制。
+- **多台裝置共用一個公有 IP**：家裡十幾台裝置、公司幾千台電腦，對外都只需要一個（或少數幾個）公有 IP。
+- **基本的防火牆效果**：外部看不到內網的 IP，也無法主動連進來（見下面的影響）。但這只是 NAT 順便帶來的效果，它不會檢查流量內容，不能取代真正的防火牆或 security group。
+- **網路管理更容易**：內網可以自己規劃私有 IP，不受電信業者影響。換電信業者時只有 router 的公有 IP 會變，內網設定都不用動；不同公司的內網也可以重複使用同一段私有 IP（例如都用 `10.0.0.0/8`）。
+
+#### 實務上會遇到的影響
+
+這就是上面說「IP 從頭到尾不變」的例外：經過 NAT 時，來源 IP 會被換掉。
 
 - **外面不能主動連進來**：轉換表只會因為內網主動連出去而建立，外面直接打進來查不到對應的機器。這順便擋掉了外部連線，但要讓外部連到內網的 server，得設 port forwarding 或放 load balancer。
 - **Server 看到的是 NAT 的 IP**：同一個公司、甚至同一個電信業者（CGNAT）底下的大量使用者會共用同一個 IP，用 IP 做 rate limit 或封鎖時容易誤傷。真正的 client IP 要靠 proxy 帶的 `X-Forwarded-For` 之類的 header。
-- **P2P 很難直連**：兩邊都在 NAT 後面時，誰都無法主動連到對方。視訊通話、線上遊戲會用 STUN 打洞，打不通再透過 TURN server 轉送。
+- **P2P 很難直連**：兩邊都在 NAT 後面時，誰都無法主動連到對方。視訊通話、線上遊戲會用 STUN 打洞，打不通再透過 TURN server 轉送（見下面的 [P2P：IPv4 + NAT vs IPv6](#p2pipv4--nat-vs-ipv6)）。
 - **雲端**：AWS 的 private subnet 沒有公有 IP，要連外（例如下載套件）得經過 **NAT Gateway**；public subnet 則透過 **Internet Gateway** 把 instance 的私有 IP 一對一對應到它的公有 IP。
 
 IPv6 位址夠多，每台裝置都能有自己的公有位址，原則上不需要 NAT，改用防火牆控制誰能連進來。
+
+#### P2P：IPv4 + NAT vs IPv6
+
+**IPv6 讓 P2P 方便很多，但不是自動就通。** 少了 NAT 就沒有位址轉換在中間攪局，但 router 還是有防火牆、預設擋掉外部主動連入，所以還是要「打洞」，只是變得簡單又可靠。
+
+**IPv4 + NAT 下 P2P 為什麼難**
+
+1. **不知道自己的公有位址**：Alice 的手機只知道自己是 `192.168.1.23`，要先問外面的 **STUN server** 才知道自己對外是哪個 IP:port。
+2. **Port 會被改**：有些 NAT（symmetric NAT）對每個不同的目的地都配不同的公有 port，從 STUN 問到的 port 不一定是連 Bob 時用的那個，打洞就失敗。
+3. **CGNAT 更麻煩**：很多行動網路、寬頻在電信業者那端又多一層 NAT，公有 IP 根本不是你的，連 port forwarding 都設不了。
+4. **最後只能繞路**：打洞失敗時，所有流量都要經過 **TURN server** 轉送，延遲變高，營運方也要付頻寬費用。
+
+**IPv6 怎麼讓它變簡單**
+
+```text
+Alice  2001:db8:a::23 ──────────────────────── Bob  2001:db8:b::37
+        └──── 裝置自己的位址就是公有位址，中間不轉換 ────┘
+```
+
+1. **自己的位址就是公有位址**：Alice 直接知道別人要用 `2001:db8:a::23` 找她，可以直接告訴 Bob，不用問 STUN。
+2. **Port 不會被改**：Alice 用 50000，對方看到的就是 50000。
+3. **打洞變得可靠**：router 的防火牆預設還是擋外部主動連入，但用下面的方式幾乎都能成功：
+
+   ```text
+   1. Alice 和 Bob 先透過 signaling server（例如 app 的後端）交換彼此的位址
+   2. 兩邊同時送一個封包給對方
+      Alice 的防火牆：「Alice 主動連出去給 Bob，所以 Bob 的回應可以進來」
+      Bob 的防火牆：  「Bob 主動連出去給 Alice，所以 Alice 的回應可以進來」
+   3. 兩邊的防火牆都有了對方的紀錄，直接連上
+   ```
+
+   IPv4 下這一步常因為 port 被改而失敗；IPv6 下位址和 port 都是看到的那個，所以幾乎都會成功。
+4. **要架服務也簡單**：不用設 port forwarding（CGNAT 下根本設不了），只要在 router 防火牆開一條規則，讓某台裝置的某個 port 能被連（pinhole），例如允許連入 `[2001:db8:b::37]:25565`。
+5. **少繞路**：直連成功率高，就很少需要 TURN，延遲低、伺服器成本也低。
+
+| | IPv4 + NAT | IPv6 + 防火牆 |
+| --- | --- | --- |
+| 知道自己的公有位址 | 要問 STUN server | 自己的位址就是 |
+| Port | 可能被改，甚至無法預測 | 不變 |
+| 打洞 | 遇到 symmetric NAT / CGNAT 常失敗 | 幾乎都成功 |
+| 架服務讓別人連 | port forwarding，CGNAT 下做不到 | 防火牆開一條規則 |
+| 需要 TURN 轉送 | 常常 | 很少 |
+
+**還是要注意**
+
+- **兩邊都要有 IPv6**：目前大約只有一半的使用者有 IPv6，只要有一邊只有 IPv4，就還是得回到 STUN / TURN。所以 WebRTC（視訊通話用的技術）會同時收集 IPv4 和 IPv6 的候選位址，全部試過一輪。
+- **位址會變**：為了隱私，裝置預設用隨機產生的臨時 IPv6 位址，而且會定期換。要架服務時要用裝置的固定位址，或用 domain name 連。
+- **沒有 NAT 不等於沒有保護**：IPv6 裝置真的可以被外面直接連到，安全完全靠防火牆規則，只開需要的 port、只開給需要的裝置。
+
+這也是為什麼 Tailscale、視訊通話這類工具在兩邊都有 IPv6 時，直連的比例會明顯變高、延遲也比較低。
 
 ### 常見的特殊位址
 
@@ -498,3 +611,77 @@ Client：連線時指定「目的 IP:port」，自己這端由 OS 隨機配一�
 - **0–1023 是 well-known port**，在 Linux 上要 root 權限才能綁定，所以一般服務常用 `8080` 之類的 port，再由 [proxy](/backend/proxy) 或 load balancer 對外開 80 / 443。
 - **Client 端用的是隨機 port**（ephemeral port，Linux 預設 32768–60999）。一條連線由「來源 IP:port + 目的 IP:port + 協定」五個值決定，所以同一台機器能同時對同一個 server 開很多條連線。
 - 這些只是**預設值**，服務可以改聽別的 port；反過來，防火牆或 security group 也是靠 port 決定放行哪些服務。Telnet、SMB、RDP、資料庫這類 port 不該直接對網際網路開放。
+
+## 綜合例子：合租公寓共用一台 Wi-Fi
+
+把這頁的東西串起來：一間合租公寓（或小辦公室）只有一台 Wi-Fi 機，Alice 的手機和 Bob 的筆電都連在上面。
+
+### 那台「Wi-Fi 機」其實是好幾台設備合體
+
+| 角色 | 做什麼 | 對應小節 |
+| --- | --- | --- |
+| Wi-Fi 基地台（Access Point） | 讓無線裝置加入區網 | [LAN](#網路的範圍panlanmanwan)、L1/L2 |
+| Switch | 區網內的裝置之間，靠 MAC 轉送 frame | [MAC](#osi-model)、[ARP](#arp從-ip-查-mac) |
+| Router | 把要出去的封包交給電信業者 | [封包怎麼跨網路](#封包怎麼跨網路送到對方) |
+| NAT | 一堆私有 IP 共用一個公有 IP | [NAT](#nat) |
+| DHCP server | 發 IP 給大家 | [DHCP](#dhcp由-server-分配) |
+| DNS 轉發 | 把 DNS 查詢轉給電信業者或 8.8.8.8 | [DNS](/network/dns) |
+| 防火牆 | 預設擋掉外部主動連入 | [NAT](#實務上會遇到的影響)、[IPv6](#p2pipv4--nat-vs-ipv6) |
+
+Router 有兩面：**WAN 那面**從電信業者拿到一個公有 IP（例如 `203.0.113.5`），**LAN 那面**是公寓自己的區網 `192.168.1.0/24`。
+
+### 1. 連上 Wi-Fi（L1/L2）
+
+Alice 輸入 Wi-Fi 密碼，手機和 router 完成 WPA2 / WPA3 認證，手機就**加入了區網（LAN）**。這時它只有 MAC 位址，還沒有 IP。
+
+### 2. 拿到 IP（DHCP，以及 SLAAC）
+
+```text
+Alice 手機 ── Discover（廣播）──▶ Router：有 DHCP server 嗎？
+          ◀── Offer ─────────────── 你用 192.168.1.23
+          ── Request ─────────────▶ 好，我要
+          ◀── Ack ───────────────── 租 24 小時；gateway 和 DNS 都是 192.168.1.1
+```
+
+Bob 的筆電一樣走一遍，拿到 `192.168.1.37`。現在公寓裡每個人都在同一個區網，各有一個私有 IP。如果電信業者有給 IPv6，router 還會廣播一個 /64 prefix，每台裝置用 SLAAC 自己組出**公有的 IPv6 位址**，走 IPv6 時就完全沒有 NAT。
+
+### 3. Alice 打開 `https://youtube.com`
+
+1. **DNS**：手機問 `192.168.1.1`「youtube.com 的 IP 是多少」（UDP 53），router 轉問電信業者的 DNS，拿到 A / AAAA 紀錄。假設最後走 IPv4：`142.250.1.1`。
+2. **判斷要交給誰**：手機用 subnet mask `/24` 發現 `142.250.1.1` 不在本地網路，所以要交給 **default gateway** `192.168.1.1`。
+3. **ARP**：手機還不知道 router 的 MAC，廣播「誰是 192.168.1.1？」，router 回自己的 MAC。
+4. **包封包**：
+
+   ```text
+   [MAC: Alice → Router][IP: 192.168.1.23 → 142.250.1.1][TCP: 51000 → 443][TLS 加密的 HTTP]
+   ```
+
+5. **NAT**：封包經過 router 出去時，來源被改掉，並記進轉換表：
+
+   ```text
+   192.168.1.23:51000  →  203.0.113.5:61001
+   ```
+
+6. **穿過網際網路**：經過一堆 router，每一跳 **MAC 換掉、TTL 減 1**，**IP 不變**。YouTube 看到的只有 `203.0.113.5`。
+7. **建立連線**：TCP 三次握手 → TLS 握手 → HTTP 請求。兩邊都支援 HTTP/3 的話，改走 UDP 443（QUIC）。
+8. **回應回來**：送到 `203.0.113.5:61001`，NAT 查表換回 `192.168.1.23:51000`，router 用 ARP 快取找到 Alice 的 MAC，透過 Wi-Fi 送給她的手機。
+
+### 4. Bob 同時也在看 YouTube
+
+```text
+Alice：192.168.1.23:51000  →  203.0.113.5:61001
+Bob  ：192.168.1.37:51000  →  203.0.113.5:61002   ← 同一個公有 IP，用公有 port 區分
+```
+
+就算兩人本地都用 51000，NAT 也會配不同的公有 port，回應回來時靠 port 分辨該給誰，這就是 **PAT**。
+
+### 從協定看合租會遇到的事
+
+- **頻寬是共用的**：大家共用 router 到電信業者的那一條線，一個室友在下載大檔，所有人都會變慢。Wi-Fi 本身也是共享的空間，裝置越多越要搶時間發送。
+- **對外大家都是同一個人**：網站只看到 `203.0.113.5`，一個室友的行為觸發了 rate limit、封鎖或 Google 驗證碼，所有人都會中。
+- **大家在同一個區網**：可以看到彼此的印表機、Chromecast（靠 multicast 互相發現）；也代表惡意的室友理論上能用 [ARP spoofing](#arp從-ip-查-mac) 攔截流量。HTTPS 能保護內容不被看到，但管理 router 的人還是看得到你查了哪些網域。很多 router 有**訪客網路或 client isolation**，可以把裝置隔開。
+- **外面預設連不進來**：想在房間架遊戲 server、從外面連回自己電腦，得在 router 設 **port forwarding**，例如把公有的 25565 轉給 `192.168.1.37:25565`。
+- **IPv6 不一樣**：每台裝置都有自己的公有 IPv6 位址，外面的網站分得出 Alice 和 Bob；擋外部連入的是 router 的防火牆，不是 NAT。
+
+> **小辦公室**的流程完全一樣，只是規模變大：設備會拆開（獨立的 router、managed switch、多台 AP），用 **VLAN** 把員工、訪客、伺服器切成不同區網；Wi-Fi 常用 WPA2/3-Enterprise，每個人用自己的帳號登入，而不是共用一組密碼；也會有內部 DNS，讓 `nas.office.local` 這種名字指到內網的機器。
+
