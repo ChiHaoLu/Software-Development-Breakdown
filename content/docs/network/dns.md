@@ -2,7 +2,7 @@
 title: "DNS"
 ---
 
-DNS 把好記的名字（`api.example.com`）轉成 IP，像網路世界的電話簿。查詢通常用 **[UDP](/network/tcp-udp) port 53**，回應太大（超過 512 bytes，例如 DNSSEC）或做 zone transfer 時改用 TCP。
+DNS 把好記的名字（`api.example.com`）轉成 IP，像網路世界的電話簿。查詢通常用 **[UDP](/network/protocol#tcp-vs-udp) port 53**，回應太大（超過 512 bytes，例如 DNSSEC）或做 zone transfer 時改用 TCP。
 
 ## 查詢流程
 

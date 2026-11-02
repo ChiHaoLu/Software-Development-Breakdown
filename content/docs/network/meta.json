@@ -1,1 +1,1 @@
-{ "title": "Network", "pages": ["protocol", "tcp-udp", "dns", "http", "security", "packet", "distributed"] }
+{ "title": "Network", "pages": ["protocol", "dns", "http", "security", "packet", "distributed"] }
