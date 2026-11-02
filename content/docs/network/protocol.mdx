@@ -61,7 +61,7 @@ OSI 把網路通訊切成 7 層，每層只跟上下層打交道：上層把資�
 
 - **L2 MAC address**：同一個區網內，下一跳是哪張網卡。每經過一個 router 就會換掉。
 - **L3 IP address**：整條路的起點與終點，從頭到尾不變（不考慮 [NAT](#nat)）。
-- **L4 port**：送到那台機器上的哪個 process，例如 `:443` 是 HTTPS、`:5432` 是 PostgreSQL。
+- **L4 port**：送到那台機器上的哪個 process，例如 `:443` 是 HTTPS、`:5432` 是 PostgreSQL（見[常見的 Port](#常見的-port)）。
 
 所以「L4 load balancer」只看 IP 和 port 就轉發，速度快但看不懂內容；「L7 load balancer」會拆開 HTTP，可以依 path、header、cookie 分流（見 [Proxy](/backend/proxy)）。
 
@@ -179,7 +179,7 @@ Internet Protocol version 4 轉移到 Internet Protocol version 6 的原因主�
 
 - **Apple 要求 app 必須能在純 IPv6 網路下運作**（2016 年起的 App Store 審核規定），所以 app 裡不要寫死 IPv4 位址，要用 domain name 連線。
 - **服務要能被 IPv6 連到**，DNS 要有 `AAAA` 紀錄，server 也要聽 IPv6。在 Linux 上綁 `::` 通常會同時接受 IPv4 連線，這時 IPv4 的 client 會顯示成 `::ffff:1.2.3.4`（IPv4-mapped address），很方便，但記 log、做 IP 白名單時要記得處理這種格式。
-- **雲端在推 IPv6**：AWS 從 2024 年起對每個公有 IPv4 收費（每個每小時約 US$0.005），所以越來越多 VPC 改成 dual stack，甚至用純 IPv6 的 subnet。
+- **雲端在推 IPv6**：AWS 從 2024 年起對每個公有 IPv4 收費（每個每小時約 US$0.005），所以越來越多 VPC（Virtual Private Cloud） 改成 dual stack，甚至用純 IPv6 的 subnet。
 - **很多 IoT、嵌入式裝置**還是只支援 IPv4，因為網路 stack 越小越省資源。
 
 總結：**裝置兩個都會、網路不一定兩個都給，兩個都有時由每條連線賽跑決定（通常 IPv6 勝出）。**
@@ -444,3 +444,57 @@ TCP 和 UDP 是傳輸層的兩條路，日常用到的應用層協定大多就�
 6. **UDP**：不建立連線，直接把封包丟給對方。適合「偶爾掉一個封包比等它重傳好」的場景，例如語音、視訊通話。
 7. **SMTP**：在 mail server 之間**寄送** email（port 25；client 送信給自己的 mail server 用 587）。收信則是另外的 IMAP / POP3。
 8. **FTP**：在 client 和 server 之間傳檔案，特別的是它把**控制通道**（port 21，送指令）和**資料通道**（送檔案內容）分成兩條連線。FTP 是明文傳輸，現在多改用 SFTP（走 SSH）或 FTPS。
+
+### 常見的 Port
+
+**IP 找到哪台機器，port 找到那台機器上的哪個程式。** 一台 server 上可能同時跑著網頁、SSH、資料庫，封包到了這台機器後，就是靠 TCP / UDP header 裡的目的 port 決定交給誰（見 [OSI Model](#osi-model) 的 L4 port）。可以想成 IP 是大樓地址、port 是房號。
+
+Port 是 16-bit 的數字，範圍 0–65535。實際使用上分成兩邊：
+
+```text
+Server：程式啟動時「聽（listen）」一個固定 port，等別人連進來
+        nginx 聽 443、PostgreSQL 聽 5432
+Client：連線時指定「目的 IP:port」，自己這端由 OS 隨機配一個 port
+        192.168.1.10:52344  ──▶  93.184.216.34:443
+```
+
+所謂**常見 port（預設 port）**，就是大家約定好「這種服務通常聽這個 port」，所以 client 不用每次都問。例如瀏覽器打 `https://example.com` 時其實是連 `example.com:443`，因為 443 是 HTTPS 的預設 port，網址裡可以省略；服務不是聽預設 port 時就要寫出來，例如開發時的 `http://localhost:3000`。
+
+日常會用到 port 的地方：
+
+| 情境 | 例子 |
+| --- | --- |
+| 網址、連線字串 | `http://localhost:3000`、`postgres://db.internal:5432/app` |
+| 查誰佔用了某個 port | `lsof -i :3000`（macOS）、`ss -tlnp`（Linux，列出所有在 listen 的 port） |
+| 測試某個 port 通不通 | `nc -vz db.internal 5432` |
+| Docker 把 container 的 port 對到主機 | `docker run -p 8080:80 nginx`：主機的 8080 → container 的 80 |
+| 防火牆、AWS security group | 只開放 443 給外部，5432 只允許內網連 |
+
+> 啟動服務時看到 `address already in use`，就是那個 port 已經有別的程式在聽了：用上面的指令找出是誰，關掉它或換一個 port。
+
+這些是常見服務的預設 port：
+
+| Port | 協定 | 傳輸層 | 用途 |
+| --- | --- | --- | --- |
+| 21 | FTP | TCP | 檔案傳輸（控制通道） |
+| 22 | SSH | TCP | 加密的遠端登入，SFTP 也走這裡 |
+| 23 | Telnet | TCP | 遠端登入（明文，已被 SSH 取代） |
+| 25 | SMTP | TCP | mail server 之間寄信 |
+| 53 | DNS | UDP / TCP | DNS 查詢（見 [DNS](/network/dns)） |
+| 67 | DHCP Server | UDP | DHCP server 端（見 [DHCP](#dhcp由-server-分配)） |
+| 68 | DHCP Client | UDP | DHCP client 端 |
+| 80 | HTTP | TCP | 網頁 |
+| 110 | POP3 | TCP | 收信（下載到本機） |
+| 123 | NTP | UDP | 校時 |
+| 139 | NetBIOS | TCP | Windows 舊式的區網檔案與名稱服務 |
+| 143 | IMAP | TCP | 收信（信件留在 server 上同步） |
+| 443 | HTTPS | TCP | 加密的網頁；HTTP/3 則走 UDP 443 |
+| 445 | SMB | TCP | Windows 檔案分享 |
+| 1521 | Oracle DB | TCP | Oracle 資料庫 |
+| 3306 | MySQL | TCP | MySQL 資料庫 |
+| 3389 | RDP | TCP | Windows 遠端桌面 |
+| 5432 | PostgreSQL | TCP | PostgreSQL 資料庫 |
+
+- **0–1023 是 well-known port**，在 Linux 上要 root 權限才能綁定，所以一般服務常用 `8080` 之類的 port，再由 [proxy](/backend/proxy) 或 load balancer 對外開 80 / 443。
+- **Client 端用的是隨機 port**（ephemeral port，Linux 預設 32768–60999）。一條連線由「來源 IP:port + 目的 IP:port + 協定」五個值決定，所以同一台機器能同時對同一個 server 開很多條連線。
+- 這些只是**預設值**，服務可以改聽別的 port；反過來，防火牆或 security group 也是靠 port 決定放行哪些服務。Telnet、SMB、RDP、資料庫這類 port 不該直接對網際網路開放。
