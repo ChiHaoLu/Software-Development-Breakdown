@@ -6,7 +6,7 @@ import networkMeme from './network-meme.jpg';
 
 <img src={networkMeme.src} alt="用喝水比喻各種網路傳輸方式：VPN、SSH、TCP、UDP、P2P、Multicast、Broadcast" width={300} />
 
-**在瀏覽器輸入一個網址按下 Enter，背後依序會用到：DNS 把名字換成 IP、TCP 建立連線、（TLS 加密）、HTTP 送出請求。** 這頁講分層模型（OSI、TCP/IP）、IP 和 [TCP vs UDP](#tcp-vs-udp)，應用層的協定各有分頁：[DNS](/network/dns)、[HTTP](/network/http)、[HTTPS / SSL / TLS](/network/security)。
+**在瀏覽器輸入一個網址按下 Enter，背後依序會用到：DNS 把名字換成 IP、TCP 建立連線、（TLS 加密）、HTTP 送出請求。** 這頁講網路範圍和分層模型（OSI、TCP/IP），[IP](/network/ip)（IPv4 / IPv6、CIDR、DHCP、ARP、NAT）和 [TCP vs UDP 與常見協定](/network/tcp-udp) 另外拆成分頁，應用層的協定也各有分頁：[DNS](/network/dns)、[HTTP](/network/http)、[HTTPS / SSL / TLS](/network/security)。
 
 ```text
 https://api.example.com/books/42
@@ -29,8 +29,8 @@ https://api.example.com/books/42
 | **WAN** | Wide Area Network | 跨城市、跨國家 | 網際網路、企業總部連分公司 | 光纖骨幹、MPLS、VPN、SD-WAN，用 router 串起來 |
 
 - **網際網路就是最大的 WAN**，由無數個 LAN 透過 [router](#router-是什麼) 連在一起。
-- 本頁常說的「**區網**」就是 LAN：[ARP](#arp從-ip-查-mac) 的廣播、[MAC](#osi-model) 位址都只在同一個 LAN 內有效，出了 LAN 就要交給 router。
-- 家用路由器背後會看到 **WAN port**（接電信業者的線，拿到公有 IP）和 **LAN port**（接家裡的裝置，發私有 IP），中間就是 [NAT](#nat) 在轉換。
+- 本頁常說的「**區網**」就是 LAN：[ARP](/network/ip#arp從-ip-查-mac) 的廣播、[MAC](#osi-model) 位址都只在同一個 LAN 內有效，出了 LAN 就要交給 router。
+- 家用路由器背後會看到 **WAN port**（接電信業者的線，拿到公有 IP）和 **LAN port**（接家裡的裝置，發私有 IP），中間就是 [NAT](/network/ip#nat) 在轉換。
 - 雲端的 VPC 可以想成雲上的 LAN；公司機房透過 VPN 或專線（如 AWS Direct Connect）連到 VPC，走的就是 WAN。
 
 ## OSI Model
@@ -60,7 +60,7 @@ OSI 把網路通訊切成 7 層，每層只跟上下層打交道：上層把資�
 4. 在資料連接層加上 MAC header，成為 `Frame`，包含了 source 和 destination MAC addresses
    - **MAC address** 是每張網卡出廠時就燒進去的 48-bit 硬體位址，寫成 `00:1A:2B:3C:4D:5E`，前 24 bits 代表製造商。
    - 它只在**同一個區網內**有意義：IP 是最終的收件地址，MAC 是「這一站要交給隔壁哪台機器」，所以每經過一個 router 就會換一次。
-   - 知道對方 IP 但不知道 MAC 時，會用 **[ARP](#arp從-ip-查-mac)** 在區網裡廣播「誰是 `192.168.1.1`？」，對方回自己的 MAC。`ip neigh`（或 `arp -a`）可以看本機快取的對照表。
+   - 知道對方 IP 但不知道 MAC 時，會用 **[ARP](/network/ip#arp從-ip-查-mac)** 在區網裡廣播「誰是 `192.168.1.1`？」，對方回自己的 MAC。`ip neigh`（或 `arp -a`）可以看本機快取的對照表。
 5. 這整個包裝起來的訊息會透過物理層傳輸（以 `binary bits` 形式） 
 6. 接下來會反過來一一拆解，知道要送到哪個設備、哪個 IP、最後是哪個程式，如何呈現等
 
@@ -76,8 +76,8 @@ OSI 把網路通訊切成 7 層，每層只跟上下層打交道：上層把資�
 **每一層各自負責「送到哪」：**
 
 - **L2 MAC address**：同一個區網內，下一跳是哪張網卡。每經過一個 router 就會換掉。
-- **L3 IP address**：整條路的起點與終點，從頭到尾不變（不考慮 [NAT](#nat)）。
-- **L4 port**：送到那台機器上的哪個 process，例如 `:443` 是 HTTPS、`:5432` 是 PostgreSQL（見[常見的 Port](#常見的-port)）。
+- **L3 IP address**：整條路的起點與終點，從頭到尾不變（不考慮 [NAT](/network/ip#nat)）。
+- **L4 port**：送到那台機器上的哪個 process，例如 `:443` 是 HTTPS、`:5432` 是 PostgreSQL（見[常見的 Port](/network/tcp-udp#常見的-port)）。
 
 所以「L4 load balancer」只看 IP 和 port 就轉發，速度快但看不懂內容；「L7 load balancer」會拆開 HTTP，可以依 path、header、cookie 分流（見 [Proxy](/backend/proxy)）。
 
@@ -169,464 +169,21 @@ Link 層一次能送的大小有上限，叫 **MTU**（Ethernet 是 1500 bytes�
 
 > 走 VPN、VXLAN 等 tunnel 時會多包一層 header，可用的 MTU 變小。如果路上有設備擋掉 ICMP，「封包太大」的通知傳不回來，就會出現**小請求正常、大請求卡住**的怪問題，這通常就是 MTU 不一致。
 
-## IP
-
-IP 負責把 packet 從一台機器送到另一台機器，但**不保證送到、不保證順序**，這些交給上面的 [TCP](#tcp-vs-udp)。
-
-### IPv4 vs IPv6
-
-Internet Protocol version 4 轉移到 Internet Protocol version 6 的原因主要是我們需要更多 internet addresses 資訊。
-
-| | IPv4 | IPv6 |
-| --- | --- | --- |
-| 長度 | 32 bits | 128 bits |
-| 表示法 | `192.168.1.10` | `2001:db8::1`（連續的 0 可以用 `::` 省略） |
-| 數量 | 約 43 億，早已不夠用 | 約 3.4 × 10³⁸，幾乎用不完 |
-| 位址不夠怎麼辦 | 靠 [NAT](#nat) 讓一堆私有 IP 共用一個公有 IP | 每台裝置都能有公有位址，不需要 NAT |
-| 設定 | [DHCP](#dhcp-與-slaac怎麼自動拿到-ip) 或手動 | 可以用 [SLAAC](#slaac裝置自己組) 自動產生，也能用 DHCPv6 |
-| Header | fields 更複雜，長度不固定，有 checksum | fields 更簡潔，固定 40 bytes、沒有 checksum，router 處理較快 |
-| 取得 MAC 位址 | [ARP](#arp從-ip-查-mac) | NDP（Neighbor Discovery） |
-| Loopback | `127.0.0.1` | `::1` |
-
-![IPv4 與 IPv6 的位址格式、header 欄位差異，以及 dual stack 架構](0236-ipv4-vs-ipv6.png)
-
-> 圖片來源：[ByteByteGo](https://blog.bytebytego.com)
-
-兩者**不相容**，所以現在多數環境是 **dual stack**：同時配 IPv4 和 IPv6，[DNS](/network/dns) 有 `AAAA` 紀錄就優先走 IPv6。
-
-#### 現在的裝置都是 dual stack 嗎？
-
-**現在的設備基本上都支援 dual stack**：Windows、macOS、Linux、iOS、Android 預設都同時開著 IPv4 和 IPv6。但「支援兩個」不等於「兩個都在用」，**實際走哪個要看所在的網路，而且是每條連線各自決定。**
-
-| 網路環境 | 裝置實際用的 |
-| --- | --- |
-| 只有 IPv4（很多公司、舊家用路由器還是這樣） | 只用 IPv4；IPv6 那邊只有 link-local 的 `fe80::` 位址，連不了外網 |
-| IPv4 + IPv6 都有（現在多數電信業者的家用寬頻） | 兩個都用，每條連線各自選 |
-| 只有 IPv6（很多行動網路，例如 T-Mobile US） | 只用 IPv6；要連只有 IPv4 的網站時，由電信業者的轉換層（NAT64 / DNS64、464XLAT）代轉 |
-
-全球來看，Google 的統計顯示大約**一半**的使用者是用 IPv6 連到 Google，另一半還在用 IPv4。
-
-**兩個都有時怎麼選：Happy Eyeballs**
-
-兩個都有時，OS 不是固定選一個，而是**每次連線都讓兩邊賽跑**：
-
-```text
-1. DNS 同時查 A（IPv4）和 AAAA（IPv6）
-2. 先試 IPv6
-3. IPv6 約 250 ms 內還沒連上，就同時開始試 IPv4
-4. 誰先連上就用誰，另一條放棄
-```
-
-這叫 **Happy Eyeballs**（RFC 8305）。早期很多網路「有 IPv6 但壞掉或很慢」，如果裝置堅持走 IPv6，使用者會一直等不到畫面。用賽跑的方式，IPv6 能用就優先用，壞了也會快到使用者察覺不到地退回 IPv4。
-
-**對後端開發的影響**
-
-- **Apple 要求 app 必須能在純 IPv6 網路下運作**（2016 年起的 App Store 審核規定），所以 app 裡不要寫死 IPv4 位址，要用 domain name 連線。
-- **服務要能被 IPv6 連到**，DNS 要有 `AAAA` 紀錄，server 也要聽 IPv6。在 Linux 上綁 `::` 通常會同時接受 IPv4 連線，這時 IPv4 的 client 會顯示成 `::ffff:1.2.3.4`（IPv4-mapped address），很方便，但記 log、做 IP 白名單時要記得處理這種格式。
-- **雲端在推 IPv6**：AWS 從 2024 年起對每個公有 IPv4 收費（每個每小時約 US$0.005），所以越來越多 VPC（Virtual Private Cloud） 改成 dual stack，甚至用純 IPv6 的 subnet。
-- **很多 IoT、嵌入式裝置**還是只支援 IPv4，因為網路 stack 越小越省資源。
-
-總結：**裝置兩個都會、網路不一定兩個都給，兩個都有時由每條連線賽跑決定（通常 IPv6 勝出）。**
-
-### 位址怎麼讀：32-bit 與 128-bit
-
-IP 位址本質上就是一長串 0 和 1：**32-bit 是說 IPv4 位址有 32 個二進位數字，128-bit 是說 IPv6 位址有 128 個。** 一長串 0 和 1 沒人讀得懂，所以兩者用不同方式分組、換成好讀的寫法。
-
-**IPv4：4 組 × 8 bits，用十進位寫**
-
-```text
-192      .168      .0        .12
-11000000  10101000  00000000  00001100
-└─ 8 bits ┘
-```
-
-- 每組 8 bits，範圍 0–255（2⁸ = 256 種）
-- 4 組 × 8 bits = 32 bits，總共 2³² ≈ 43 億個位址
-
-**IPv6：8 組 × 16 bits，用十六進位寫**
-
-圖中的 `50B3:F200:0211:AB00:0123:4321:6571:B000` 不是 8 進位，而是 **16 進位**：8 進位只有 0–7，這裡出現 `A`–`F`（代表 10–15）。「8」是組數，不是進位制。
-
-```text
-50B3 : F200 : 0211 : AB00 : 0123 : 4321 : 6571 : B000
-└ 16 bits ┘
-
-拆開第一組 50B3：
-  5      0      B      3
-0101   0000   1011   0011     ← 每個 16 進位數字剛好對應 4 bits
-= 0101000010110011（二進位）= 20659（十進位）
-```
-
-- 1 個 16 進位數字 = 4 bits，4 個數字一組 = 16 bits
-- 8 組 × 16 bits = 128 bits
-- 128 bits 用十進位寫會太長，16 進位和二進位又能直接互轉，所以 IPv6 用 16 進位
-
-**前半是網路，後半是裝置**，和 IPv4 的 [CIDR](#cidr-與-subnet) 是同一個概念，最常見的是一半一半：
-
-```text
-50B3:F200:0211:AB00 : 0123:4321:6571:B000
-└─ prefix（64 bits）─┘ └─ interface ID（64 bits）─┘
-   哪個網路                那個網路裡的哪台裝置
-```
-
-所以 IPv6 一個 subnet 的標準大小是 `/64`，就像 IPv4 常見的 `/24`。
-
-**IPv6 的兩種省略規則：**
-
-- 每組開頭的 0 可以省略：`0211` → `211`、`0123` → `123`
-- **一段**連續全為 0 的組可以合併成 `::`，整個位址只能用一次，不然無法判斷每個 `::` 各代表幾組 0
-
-```text
-2001:0db8:0000:0000:0000:0000:0000:0001
-→ 2001:db8:0:0:0:0:0:1     省略開頭的 0
-→ 2001:db8::1              把連續的 0 組合併成 ::
-```
-
-Loopback 的 `::1` 就是前面 127 個 0、最後一個 1。
-
-> 2¹²⁸ 不是 2³² 的 4 倍，而是 **2⁹⁶ 倍**（約 7.9 × 10²⁸）。2¹²⁸ ≈ 3.4 × 10³⁸ 多到地球上每粒沙都能分到很多個位址，所以 IPv6 可以讓每台裝置都有公有位址，不需要 NAT。
-
-### CIDR 與 Subnet
-
-`10.0.1.0/24` 表示前 24 bits 是網路位址，後 8 bits 留給主機，所以這個 subnet 有 2⁸ = 256 個位址。subnet mask 就是同一件事換個寫法：`/24` = `255.255.255.0`。
-
-| CIDR | Mask | 位址數 | 常見用途 |
-| --- | --- | --- | --- |
-| `/16` | `255.255.0.0` | 65,536 | 一整個 VPC |
-| `/24` | `255.255.255.0` | 256 | 一個 subnet |
-| `/32` | `255.255.255.255` | 1 | 指定單一台主機（例如防火牆規則） |
-
-> 在 AWS 一個 subnet 會被保留 5 個位址（網路位址、router、DNS、保留、廣播），所以 `/24` 實際可用的是 251 個。
-
-**私有 IP（RFC 1918）** 不會在網際網路上被路由，要出去得經過 [NAT](#nat)：
-
-- `10.0.0.0/8`
-- `172.16.0.0/12`
-- `192.168.0.0/16`
-
-### DHCP 與 SLAAC：怎麼自動拿到 IP
-
-兩個都是在回答「裝置連上網路時，IP 怎麼自動來」：IPv4 主要靠 **DHCP**，IPv6 則有自己的 **SLAAC**。
-
-#### DHCP：由 server 分配
-
-**DHCP（Dynamic Host Configuration Protocol）由一台 DHCP server（家裡通常就是路由器）分配 IP 給每台裝置**，順便給齊上網需要的設定：IP 與 subnet mask、default gateway（要去別的網路時交給誰）、DNS server。
-
-流程叫 **DORA**。裝置剛連上時還沒有 IP，所以一開始只能用廣播：
-
-```text
-裝置（還沒有 IP）                    DHCP Server
-  │ ── Discover（廣播）───────────▶ │   有沒有 DHCP server？
-  │ ◀── Offer ───────────────────── │   你可以用 192.168.1.10
-  │ ── Request（廣播）────────────▶ │   好，我要 192.168.1.10
-  │ ◀── Ack ─────────────────────── │   確認，租約 24 小時
-```
-
-- 跑在 **UDP** 上（server port 67、client port 68）。
-- IP 是**租的（lease）**，用到一半左右會自動續約，沒續約就收回去給別人用。
-- Server 會記住哪個 MAC 拿了哪個 IP（**stateful**）。也可以設 **reservation**，讓某個 MAC 固定拿到同一個 IP，印表機、NAS 常這樣設。
-- **找不到 DHCP server** 時，裝置會自己配一個 `169.254.x.x`（見[常見的特殊位址](#常見的特殊位址)）。看到 `169.254` 開頭的 IP，通常代表 DHCP 失敗了。
-
-#### SLAAC：裝置自己組
-
-**SLAAC（Stateless Address Autoconfiguration）讓 IPv6 裝置不用別人分配，自己組出位址**，用的就是[前半網路、後半裝置](#位址怎麼讀32-bit-與-128-bit)的結構：
-
-```text
-1. 裝置送出 Router Solicitation：「這裡有 router 嗎？」
-2. Router 回 Router Advertisement：「這個網路的 prefix 是 2001:db8:1:2::/64」
-3. 裝置自己產生後 64 bits 的 interface ID，兩段拼起來：
-
-   2001:db8:1:2 : 8a3f:12ff:fe4b:9c01
-   └ router 給的 ┘ └ 裝置自己產生的 ┘
-
-4. 用 NDP 確認沒有別人用這個位址（Duplicate Address Detection），就開始用
-```
-
-- **Stateless**：router 只負責廣播 prefix，不記錄誰拿了哪個位址，管理上比 DHCP 輕。
-- **Interface ID 怎麼來**：早期直接從 MAC 推算（EUI-64），但這樣同一台裝置換到哪個網路都認得出來，有隱私問題，所以現在的 OS 預設**隨機產生**、而且會定期換（privacy extensions）。
-- **DNS 怎麼辦**：router 可以在 Router Advertisement 裡順便帶 DNS server（RDNSS），或搭配 stateless DHCPv6 只發 DNS 設定。
-
-| | DHCP（IPv4） | SLAAC（IPv6） |
-| --- | --- | --- |
-| 誰決定 IP | DHCP server 分配 | 裝置用 router 給的 prefix 自己組 |
-| Server 記不記錄 | 記（stateful），知道誰拿了哪個 IP | 不記（stateless） |
-| 需要專門的 server | 要（通常內建在路由器） | 不用，router 會發 RA 就好 |
-| 給 DNS 設定 | 有 | 要靠 RDNSS 或 stateless DHCPv6 |
-
-> IPv6 也有 **DHCPv6**（stateful 模式），像 DHCP 一樣由 server 分配並記錄，企業需要追蹤「哪台裝置拿了哪個 IP」時會用。但 **Android 不支援 stateful DHCPv6**，所以有手機的網路基本上一定要開 SLAAC。
-
-### ARP：從 IP 查 MAC
-
-**ARP（Address Resolution Protocol）在區網內把 IP 查成 MAC。** 要在區網送封包，Link 層得把它包成 frame，而 frame 上要寫**目的 MAC**；但程式只知道**目的 IP**，ARP 就是負責查「這個 IP 是哪張網卡」。
-
-```text
-192.168.1.10 想送給 192.168.1.1，但不知道它的 MAC
-
-1. 先查本機的 ARP 快取，有就直接用
-2. 沒有 → 對整個區網廣播（目的 MAC 是 ff:ff:ff:ff:ff:ff）
-   「誰是 192.168.1.1？請告訴 192.168.1.10」
-3. 大家都收到，但只有 192.168.1.1 回應（直接回給問的人，不是廣播）
-   「192.168.1.1 在 aa:bb:cc:dd:ee:ff」
-4. 存進快取（幾分鐘後過期，之後再重新查）
-```
-
-ARP 直接跑在 Ethernet 上、沒有 IP header，介於 L2 和 L3 之間，所以有時被稱為「L2.5」。
-
-**目標不在同一個區網時，不會去查遠端 server 的 MAC。** 例如要連 `93.184.216.34`，電腦會用 subnet mask 判斷它不在本地網路，於是查的是 **default gateway（router）的 MAC**，把封包交給 router。這就是[封包怎麼跨網路送到對方](#封包怎麼跨網路送到對方)裡「IP 不變，MAC 每一跳都換」的原因：每一跳的 router 都會再用 ARP 查下一站的 MAC、重新包 frame。
-
-```bash
-ip neigh      # Linux
-arp -a        # macOS / Windows
-```
-
-- **ARP spoofing**：ARP 完全沒有驗證，誰都可以宣稱「我就是 192.168.1.1」。攻擊者不斷送假回應，讓區網裡所有人把 gateway 的 IP 對應到攻擊者的 MAC，流量就全部經過他（中間人攻擊）。這也是為什麼在公共 Wi-Fi 一定要用 HTTPS：就算被攔截也是加密過的。企業 switch 可以開 Dynamic ARP Inspection 擋假回應。
-- **Gratuitous ARP**：主動宣告自己的 IP→MAC，沒人問也送。用在 failover：例如 keepalived 的 virtual IP 漂移到備援機器時，備援機會發一個讓大家更新快取。
-- **IPv6 不用 ARP**，改用 **NDP**（Neighbor Discovery，跑在 ICMPv6 上），用 multicast 取代對所有人廣播。
-
-### NAT
-
-**NAT（Network Address Translation）讓一整個內網的私有 IP 共用一個公有 IP 上網。** IPv4 位址早就不夠用，網際網路卻還能持續成長，靠的就是 NAT。
-
-#### 運作流程
-
-1. 在公司或家裡，手機、電腦等多台裝置共用一台 router，而這台 router 只有**一個公有 IP**。
-2. 裝置要上網時，把請求送給 router，請求的來源是裝置自己的**私有 IP**（例如 `192.168.1.10:50000`）。
-3. Router 的 NAT 把來源的私有 IP **換成自己的公有 IP**（通常連 port 一起換，例如 `203.0.113.5:61000`），並把這組對應記在**轉換表**裡。
-4. 改寫過的請求送上網際網路，對方只看得到 router 的公有 IP。
-5. 回應回來時，NAT **查轉換表**，把目的地的公有 IP 換回正確的私有 IP，送給當初發出請求的那台裝置。
-
-```text
-內網                      NAT（家用路由器、AWS NAT Gateway）           網際網路
-192.168.1.10:50000 ──▶  來源改成 203.0.113.5:61000          ──▶  93.184.216.34:443
-192.168.1.10:50000 ◀──  查表改回                             ◀──  回給 203.0.113.5:61000
-
-轉換表：203.0.113.5:61000 ↔ 192.168.1.10:50000
-```
-
-> 一個公有 IP 能分給很多台裝置，靠的是 **port**：不同裝置的連線在第 3 步會被配到不同的公有 port，回應回來時就用 port 分辨該交給誰。這種「多對一」的 NAT 也叫 **PAT**（Port Address Translation）或 NAT overload，家用路由器用的就是這種。
-
-#### NAT 的用途
-
-- **節省公有 IP**：沒有 NAT 的話，IPv4 位址會更早用完，網際網路的成長會被嚴重限制。
-- **多台裝置共用一個公有 IP**：家裡十幾台裝置、公司幾千台電腦，對外都只需要一個（或少數幾個）公有 IP。
-- **基本的防火牆效果**：外部看不到內網的 IP，也無法主動連進來（見下面的影響）。但這只是 NAT 順便帶來的效果，它不會檢查流量內容，不能取代真正的防火牆或 security group。
-- **網路管理更容易**：內網可以自己規劃私有 IP，不受電信業者影響。換電信業者時只有 router 的公有 IP 會變，內網設定都不用動；不同公司的內網也可以重複使用同一段私有 IP（例如都用 `10.0.0.0/8`）。
-
-#### 實務上會遇到的影響
-
-這就是上面說「IP 從頭到尾不變」的例外：經過 NAT 時，來源 IP 會被換掉。
-
-- **外面不能主動連進來**：轉換表只會因為內網主動連出去而建立，外面直接打進來查不到對應的機器。這順便擋掉了外部連線，但要讓外部連到內網的 server，得設 port forwarding 或放 load balancer。
-- **Server 看到的是 NAT 的 IP**：同一個公司、甚至同一個電信業者（CGNAT）底下的大量使用者會共用同一個 IP，用 IP 做 rate limit 或封鎖時容易誤傷。真正的 client IP 要靠 proxy 帶的 `X-Forwarded-For` 之類的 header。
-- **P2P 很難直連**：兩邊都在 NAT 後面時，誰都無法主動連到對方。視訊通話、線上遊戲會用 STUN 打洞，打不通再透過 TURN server 轉送（見下面的 [P2P：IPv4 + NAT vs IPv6](#p2pipv4--nat-vs-ipv6)）。
-- **雲端**：AWS 的 private subnet 沒有公有 IP，要連外（例如下載套件）得經過 **NAT Gateway**；public subnet 則透過 **Internet Gateway** 把 instance 的私有 IP 一對一對應到它的公有 IP。
-
-IPv6 位址夠多，每台裝置都能有自己的公有位址，原則上不需要 NAT，改用防火牆控制誰能連進來。
-
-#### P2P：IPv4 + NAT vs IPv6
-
-**IPv6 讓 P2P 方便很多，但不是自動就通。** 少了 NAT 就沒有位址轉換在中間攪局，但 router 還是有防火牆、預設擋掉外部主動連入，所以還是要「打洞」，只是變得簡單又可靠。
-
-**IPv4 + NAT 下 P2P 為什麼難**
-
-1. **不知道自己的公有位址**：Alice 的手機只知道自己是 `192.168.1.23`，要先問外面的 **STUN server** 才知道自己對外是哪個 IP:port。
-2. **Port 會被改**：有些 NAT（symmetric NAT）對每個不同的目的地都配不同的公有 port，從 STUN 問到的 port 不一定是連 Bob 時用的那個，打洞就失敗。
-3. **CGNAT 更麻煩**：很多行動網路、寬頻在電信業者那端又多一層 NAT，公有 IP 根本不是你的，連 port forwarding 都設不了。
-4. **最後只能繞路**：打洞失敗時，所有流量都要經過 **TURN server** 轉送，延遲變高，營運方也要付頻寬費用。
-
-**IPv6 怎麼讓它變簡單**
-
-```text
-Alice  2001:db8:a::23 ──────────────────────── Bob  2001:db8:b::37
-        └──── 裝置自己的位址就是公有位址，中間不轉換 ────┘
-```
-
-1. **自己的位址就是公有位址**：Alice 直接知道別人要用 `2001:db8:a::23` 找她，可以直接告訴 Bob，不用問 STUN。
-2. **Port 不會被改**：Alice 用 50000，對方看到的就是 50000。
-3. **打洞變得可靠**：router 的防火牆預設還是擋外部主動連入，但用下面的方式幾乎都能成功：
-
-   ```text
-   1. Alice 和 Bob 先透過 signaling server（例如 app 的後端）交換彼此的位址
-   2. 兩邊同時送一個封包給對方
-      Alice 的防火牆：「Alice 主動連出去給 Bob，所以 Bob 的回應可以進來」
-      Bob 的防火牆：  「Bob 主動連出去給 Alice，所以 Alice 的回應可以進來」
-   3. 兩邊的防火牆都有了對方的紀錄，直接連上
-   ```
-
-   IPv4 下這一步常因為 port 被改而失敗；IPv6 下位址和 port 都是看到的那個，所以幾乎都會成功。
-4. **要架服務也簡單**：不用設 port forwarding（CGNAT 下根本設不了），只要在 router 防火牆開一條規則，讓某台裝置的某個 port 能被連（pinhole），例如允許連入 `[2001:db8:b::37]:25565`。
-5. **少繞路**：直連成功率高，就很少需要 TURN，延遲低、伺服器成本也低。
-
-| | IPv4 + NAT | IPv6 + 防火牆 |
-| --- | --- | --- |
-| 知道自己的公有位址 | 要問 STUN server | 自己的位址就是 |
-| Port | 可能被改，甚至無法預測 | 不變 |
-| 打洞 | 遇到 symmetric NAT / CGNAT 常失敗 | 幾乎都成功 |
-| 架服務讓別人連 | port forwarding，CGNAT 下做不到 | 防火牆開一條規則 |
-| 需要 TURN 轉送 | 常常 | 很少 |
-
-**還是要注意**
-
-- **兩邊都要有 IPv6**：目前大約只有一半的使用者有 IPv6，只要有一邊只有 IPv4，就還是得回到 STUN / TURN。所以 WebRTC（視訊通話用的技術）會同時收集 IPv4 和 IPv6 的候選位址，全部試過一輪。
-- **位址會變**：為了隱私，裝置預設用隨機產生的臨時 IPv6 位址，而且會定期換。要架服務時要用裝置的固定位址，或用 domain name 連。
-- **沒有 NAT 不等於沒有保護**：IPv6 裝置真的可以被外面直接連到，安全完全靠防火牆規則，只開需要的 port、只開給需要的裝置。
-
-這也是為什麼 Tailscale、視訊通話這類工具在兩邊都有 IPv6 時，直連的比例會明顯變高、延遲也比較低。
-
-### 常見的特殊位址
-
-| 位址 | 意思 |
-| --- | --- |
-| `127.0.0.1` | 自己（loopback） |
-| `0.0.0.0` | 沒有位址；server 綁在這上面表示「監聽所有網卡」 |
-| `192.168.1.1` | 家用路由器常見的 gateway（私有 IP） |
-| `255.255.255.255` | 廣播給同一個區網的所有人 |
-| `8.8.8.8` | Google 的公共 DNS |
-| `169.254.0.0/16` | [DHCP](#dhcp由-server-分配) 失敗時自動配的位址（APIPA / link-local）；雲端的 metadata server `169.254.169.254` 也在這段 |
-| `224.0.0.0/4` | Multicast 位址範圍，例如 `224.0.0.1` 是「本網段所有主機」 |
-
-> 寫 server 時綁 `127.0.0.1` 只有本機連得到；放進 container 裡要讓外面連，得綁 `0.0.0.0`。
-
-## TCP vs UDP
-
-兩個都在 [L4（傳輸層）](#tcpip-model)，差別是 **TCP 幫你保證可靠，UDP 只管丟出去**。
-
-| | TCP | UDP |
-| --- | --- | --- |
-| 連線 | 要先握手建立連線 | 不用，直接送 |
-| 可靠性 | 保證送達、不重複、照順序 | 可能遺失、重複、亂序 |
-| 資料型態 | Byte stream（沒有訊息邊界） | Datagram（一次送一個完整訊息） |
-| 流量控制 / 壅塞控制 | 有 | 沒有 |
-| Header | 20–60 bytes | 8 bytes |
-| 速度 / 延遲 | 較慢，遺失要重傳 | 較快 |
-| 用在 | HTTP/1.1、HTTP/2、SSH、資料庫連線、email | DNS 查詢、影音串流、視訊通話、線上遊戲、QUIC（HTTP/3） |
-
-**怎麼選：** 資料**一個 byte 都不能錯**就用 TCP；**晚到的資料等於沒用**（視訊畫面、遊戲座標）就用 UDP，掉了直接用下一筆。
-
-### 三次握手（建立連線）
-
-```text
-Client                          Server
-  │ ── SYN (seq=x) ──────────────▶ │   我想連線
-  │ ◀── SYN-ACK (seq=y, ack=x+1) ─ │   好，我也想
-  │ ── ACK (ack=y+1) ────────────▶ │   收到，開始傳
-  │ ═══════════ 傳資料 ═══════════ │
-```
-
-為什麼是三次不是兩次？雙方都要確認**自己送得出去、也收得到對方的**，並交換各自的起始序號（seq）。只有兩次的話，server 無法確認 client 收到了它的 SYN；網路上殘留的舊 SYN 也可能讓 server 白白開一條連線。
-
-### 四次揮手（關閉連線）
-
-```text
-Client                          Server
-  │ ── FIN ──────────────────────▶ │   我沒有要送的了
-  │ ◀── ACK ────────────────────── │   知道了（但我可能還有資料要送）
-  │ ◀── FIN ────────────────────── │   我也送完了
-  │ ── ACK ──────────────────────▶ │
-  │  TIME_WAIT（等 2×MSL 才真正關閉）
-```
-
-比握手多一次，是因為 TCP 是**雙向**的，兩個方向要各自關閉；server 收到 FIN 時可能還有資料沒送完，所以 ACK 和 FIN 分開送。
-
-> 實務上常見的問題：大量短連線會讓主動關閉的一方堆積 `TIME_WAIT`，把 port 用光。解法通常是**重用連線**（HTTP keep-alive、connection pool），而不是去調 kernel 參數。用 `ss -tan` 可以看各狀態的連線數（見 [Commands](/os/linux/commands)）。
-
-### TCP 怎麼保證可靠
-
-- **序號（seq）與 ACK**：每個 byte 都有編號，收到的一方回 ACK 告訴對方「下一個我要第幾號」，所以能重組順序、丟掉重複。
-- **重傳**：等不到 ACK（timeout）或連續收到 3 個重複的 ACK，就重送。
-- **Flow control（流量控制）**：接收端用 window size 告訴對方「我的 buffer 還剩多少」，避免把接收端塞爆。
-- **Congestion control（壅塞控制）**：發送端從小量開始送（slow start），沒掉封包就加速，掉了就減速，避免把整個網路塞爆。
-
-### Head-of-line blocking
-
-TCP 保證順序，代價是**前面一個封包掉了，後面已經到的也得等它重傳**。這就是 HTTP/2 在差的網路下反而可能比較慢、HTTP/3 改用 UDP（QUIC）的原因，見 [HTTP 版本演進](/network/http#版本演進)。
-
-## 常見網路協定一覽
-
-TCP 和 UDP 是傳輸層的兩條路，日常用到的應用層協定大多就蓋在它們上面：
-
-![8 種常見網路協定的運作方式與使用情境](0292-explaining-8-popular-network-protocols-in-1-diagram.png)
-
-> 圖片來源：[ByteByteGo](https://blog.bytebytego.com)
-
-1. **HTTP**：client-server 的請求-回應協定，用來抓 HTML、圖片、API 資料等資源，是 Web 資料交換的基礎。跑在 TCP 上（見 [HTTP](/network/http)）。
-2. **HTTP/3**：HTTP 的下一個主要版本，改跑在 **QUIC（UDP）** 上，一個 stream 掉封包不會卡住其他 stream，連線建立也更快。很適合常換網路的行動裝置，以及 VR 這類需要大量頻寬、對延遲敏感的應用（見 [HTTP 版本演進](/network/http#版本演進)）。
-3. **HTTPS**：HTTP 加上 TLS 加密，先用公鑰交換出 session key，之後的資料都用它加密（見 [HTTPS / SSL / TLS](/network/security)）。
-4. **WebSocket**：在一條 TCP 連線上做**全雙工**通訊。先用 HTTP 的 `Upgrade` header 握手，server 回 `101 Switching Protocols` 後，這條連線就改講 WebSocket。REST 只能由 client 主動「拉」資料，WebSocket 讓 server 也能主動「推」，適合聊天、股價、線上遊戲這類即時更新。
-5. **TCP**：先三次握手建立連線，保證資料送達且照順序，許多應用層協定都蓋在它上面（見上面的 [TCP vs UDP](#tcp-vs-udp)）。
-6. **UDP**：不建立連線，直接把封包丟給對方。適合「偶爾掉一個封包比等它重傳好」的場景，例如語音、視訊通話。
-7. **SMTP**：在 mail server 之間**寄送** email（port 25；client 送信給自己的 mail server 用 587）。收信則是另外的 IMAP / POP3。
-8. **FTP**：在 client 和 server 之間傳檔案，特別的是它把**控制通道**（port 21，送指令）和**資料通道**（送檔案內容）分成兩條連線。FTP 是明文傳輸，現在多改用 SFTP（走 SSH）或 FTPS。
-
-### 常見的 Port
-
-**IP 找到哪台機器，port 找到那台機器上的哪個程式。** 一台 server 上可能同時跑著網頁、SSH、資料庫，封包到了這台機器後，就是靠 TCP / UDP header 裡的目的 port 決定交給誰（見 [OSI Model](#osi-model) 的 L4 port）。可以想成 IP 是大樓地址、port 是房號。
-
-Port 是 16-bit 的數字，範圍 0–65535。實際使用上分成兩邊：
-
-```text
-Server：程式啟動時「聽（listen）」一個固定 port，等別人連進來
-        nginx 聽 443、PostgreSQL 聽 5432
-Client：連線時指定「目的 IP:port」，自己這端由 OS 隨機配一個 port
-        192.168.1.10:52344  ──▶  93.184.216.34:443
-```
-
-所謂**常見 port（預設 port）**，就是大家約定好「這種服務通常聽這個 port」，所以 client 不用每次都問。例如瀏覽器打 `https://example.com` 時其實是連 `example.com:443`，因為 443 是 HTTPS 的預設 port，網址裡可以省略；服務不是聽預設 port 時就要寫出來，例如開發時的 `http://localhost:3000`。
-
-日常會用到 port 的地方：
-
-| 情境 | 例子 |
-| --- | --- |
-| 網址、連線字串 | `http://localhost:3000`、`postgres://db.internal:5432/app` |
-| 查誰佔用了某個 port | `lsof -i :3000`（macOS）、`ss -tlnp`（Linux，列出所有在 listen 的 port） |
-| 測試某個 port 通不通 | `nc -vz db.internal 5432` |
-| Docker 把 container 的 port 對到主機 | `docker run -p 8080:80 nginx`：主機的 8080 → container 的 80 |
-| 防火牆、AWS security group | 只開放 443 給外部，5432 只允許內網連 |
-
-> 啟動服務時看到 `address already in use`，就是那個 port 已經有別的程式在聽了：用上面的指令找出是誰，關掉它或換一個 port。
-
-這些是常見服務的預設 port：
-
-| Port | 協定 | 傳輸層 | 用途 |
-| --- | --- | --- | --- |
-| 21 | FTP | TCP | 檔案傳輸（控制通道） |
-| 22 | SSH | TCP | 加密的遠端登入，SFTP 也走這裡 |
-| 23 | Telnet | TCP | 遠端登入（明文，已被 SSH 取代） |
-| 25 | SMTP | TCP | mail server 之間寄信 |
-| 53 | DNS | UDP / TCP | DNS 查詢（見 [DNS](/network/dns)） |
-| 67 | DHCP Server | UDP | DHCP server 端（見 [DHCP](#dhcp由-server-分配)） |
-| 68 | DHCP Client | UDP | DHCP client 端 |
-| 80 | HTTP | TCP | 網頁 |
-| 110 | POP3 | TCP | 收信（下載到本機） |
-| 123 | NTP | UDP | 校時 |
-| 139 | NetBIOS | TCP | Windows 舊式的區網檔案與名稱服務 |
-| 143 | IMAP | TCP | 收信（信件留在 server 上同步） |
-| 443 | HTTPS | TCP | 加密的網頁；HTTP/3 則走 UDP 443 |
-| 445 | SMB | TCP | Windows 檔案分享 |
-| 1521 | Oracle DB | TCP | Oracle 資料庫 |
-| 3306 | MySQL | TCP | MySQL 資料庫 |
-| 3389 | RDP | TCP | Windows 遠端桌面 |
-| 5432 | PostgreSQL | TCP | PostgreSQL 資料庫 |
-
-- **0–1023 是 well-known port**，在 Linux 上要 root 權限才能綁定，所以一般服務常用 `8080` 之類的 port，再由 [proxy](/backend/proxy) 或 load balancer 對外開 80 / 443。
-- **Client 端用的是隨機 port**（ephemeral port，Linux 預設 32768–60999）。一條連線由「來源 IP:port + 目的 IP:port + 協定」五個值決定，所以同一台機器能同時對同一個 server 開很多條連線。
-- 這些只是**預設值**，服務可以改聽別的 port；反過來，防火牆或 security group 也是靠 port 決定放行哪些服務。Telnet、SMB、RDP、資料庫這類 port 不該直接對網際網路開放。
-
 ## 綜合例子：合租公寓共用一台 Wi-Fi
 
-把這頁的東西串起來：一間合租公寓（或小辦公室）只有一台 Wi-Fi 機，Alice 的手機和 Bob 的筆電都連在上面。
+把這頁和 [IP](/network/ip)、[TCP vs UDP](/network/tcp-udp) 的東西串起來：一間合租公寓（或小辦公室）只有一台 Wi-Fi 機，Alice 的手機和 Bob 的筆電都連在上面。
 
 ### 那台「Wi-Fi 機」其實是好幾台設備合體
 
 | 角色 | 做什麼 | 對應小節 |
 | --- | --- | --- |
 | Wi-Fi 基地台（Access Point） | 讓無線裝置加入區網 | [LAN](#網路的範圍panlanmanwan)、L1/L2 |
-| Switch | 區網內的裝置之間，靠 MAC 轉送 frame | [MAC](#osi-model)、[ARP](#arp從-ip-查-mac) |
+| Switch | 區網內的裝置之間，靠 MAC 轉送 frame | [MAC](#osi-model)、[ARP](/network/ip#arp從-ip-查-mac) |
 | Router | 把要出去的封包交給電信業者 | [封包怎麼跨網路](#封包怎麼跨網路送到對方) |
-| NAT | 一堆私有 IP 共用一個公有 IP | [NAT](#nat) |
-| DHCP server | 發 IP 給大家 | [DHCP](#dhcp由-server-分配) |
+| NAT | 一堆私有 IP 共用一個公有 IP | [NAT](/network/ip#nat) |
+| DHCP server | 發 IP 給大家 | [DHCP](/network/ip#dhcp由-server-分配) |
 | DNS 轉發 | 把 DNS 查詢轉給電信業者或 8.8.8.8 | [DNS](/network/dns) |
-| 防火牆 | 預設擋掉外部主動連入 | [NAT](#實務上會遇到的影響)、[IPv6](#p2pipv4--nat-vs-ipv6) |
+| 防火牆 | 預設擋掉外部主動連入 | [NAT](/network/ip#實務上會遇到的影響)、[IPv6](/network/ip#p2pipv4--nat-vs-ipv6) |
 
 Router 有兩面：**WAN 那面**從電信業者拿到一個公有 IP（例如 `203.0.113.5`），**LAN 那面**是公寓自己的區網 `192.168.1.0/24`。
 
@@ -679,7 +236,7 @@ Bob  ：192.168.1.37:51000  →  203.0.113.5:61002   ← 同一個公有 IP，�
 
 - **頻寬是共用的**：大家共用 router 到電信業者的那一條線，一個室友在下載大檔，所有人都會變慢。Wi-Fi 本身也是共享的空間，裝置越多越要搶時間發送。
 - **對外大家都是同一個人**：網站只看到 `203.0.113.5`，一個室友的行為觸發了 rate limit、封鎖或 Google 驗證碼，所有人都會中。
-- **大家在同一個區網**：可以看到彼此的印表機、Chromecast（靠 multicast 互相發現）；也代表惡意的室友理論上能用 [ARP spoofing](#arp從-ip-查-mac) 攔截流量。HTTPS 能保護內容不被看到，但管理 router 的人還是看得到你查了哪些網域。很多 router 有**訪客網路或 client isolation**，可以把裝置隔開。
+- **大家在同一個區網**：可以看到彼此的印表機、Chromecast（靠 multicast 互相發現）；也代表惡意的室友理論上能用 [ARP spoofing](/network/ip#arp從-ip-查-mac) 攔截流量。HTTPS 能保護內容不被看到，但管理 router 的人還是看得到你查了哪些網域。很多 router 有**訪客網路或 client isolation**，可以把裝置隔開。
 - **外面預設連不進來**：想在房間架遊戲 server、從外面連回自己電腦，得在 router 設 **port forwarding**，例如把公有的 25565 轉給 `192.168.1.37:25565`。
 - **IPv6 不一樣**：每台裝置都有自己的公有 IPv6 位址，外面的網站分得出 Alice 和 Bob；擋外部連入的是 router 的防火牆，不是 NAT。
 

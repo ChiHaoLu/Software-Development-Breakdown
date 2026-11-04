@@ -24,7 +24,7 @@ Method、status code、header 在 API 設計上怎麼用，見 [HTTP Request](/b
 | --- | --- | --- | --- |
 | HTTP/1.0 | TCP | | 每個請求都要開一條新的 TCP 連線 |
 | HTTP/1.1 | TCP | **Keep-alive** 重用連線、`Host` header（一台機器掛多個網站）、chunked 傳輸 | 一條連線同時只能處理一個請求，瀏覽器只好開 6 條平行連線 |
-| HTTP/2 | TCP | **Multiplexing**：一條連線同時跑多個 stream；binary framing；header 壓縮（HPACK） | TCP 層的 [head-of-line blocking](/network/protocol#head-of-line-blocking)：掉一個封包，所有 stream 一起等 |
+| HTTP/2 | TCP | **Multiplexing**：一條連線同時跑多個 stream；binary framing；header 壓縮（HPACK） | TCP 層的 [head-of-line blocking](/network/tcp-udp#head-of-line-blocking)：掉一個封包，所有 stream 一起等 |
 | HTTP/3 | **QUIC（UDP）** | 每個 stream 各自重傳，互不卡住；TLS 1.3 內建，連線建立更快（0-RTT / 1-RTT）；換網路（Wi-Fi → 4G）時連線不斷 | 有些企業防火牆會擋 UDP，要能退回 HTTP/2 |
 
 ```text

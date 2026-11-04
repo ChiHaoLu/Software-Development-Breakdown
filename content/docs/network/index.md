@@ -16,7 +16,9 @@ title: "Network"
 
 ### 網路協議基礎
 
-- OSI / TCP/IP model、IPv4 / IPv6、NAT、TCP vs UDP：[Network Protocols](/network/protocol)
+- OSI / TCP/IP model、router：[Network Protocols](/network/protocol)
+- IPv4 / IPv6、CIDR、DHCP、ARP、NAT：[IP](/network/ip)
+- TCP vs UDP、常見協定與 port：[TCP vs UDP 與常見協定](/network/tcp-udp)
 - [DNS](/network/dns)、[HTTP](/network/http)
 - 用 Wireshark 抓封包，見 [封包分析](/network/packet)。
 
