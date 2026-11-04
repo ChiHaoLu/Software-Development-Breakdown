@@ -2,36 +2,40 @@
 title: "DNS"
 ---
 
-DNS 把好記的名字（`api.example.com`）轉成 IP，像網路世界的電話簿。查詢通常用 **[UDP](/network/tcp-udp#tcp-vs-udp) port 53**，回應太大（超過 512 bytes，例如 DNSSEC）或做 zone transfer 時改用 TCP。
+DNS 就像網路世界的通訊錄：把人看得懂的名字（`google.com`）轉成機器看得懂的 IP（`142.251.46.238`）。查詢通常用 **[UDP](/network/tcp-udp#tcp-vs-udp) port 53**，回應太大（超過 512 bytes，例如 DNSSEC）或做 zone transfer 時改用 TCP。
+
+![DNS 查詢流程：瀏覽器 → DNS resolver → root → .com TLD → google.com authoritative name server，最後拿到 IP](0176-dns-look-up.png)
+
+> 圖片來源：[ByteByteGo](https://bytebytego.com/guides/how-does-the-domain-name-system-dns-lookup-work/)
+
+## 三層 DNS server
+
+全世界的名字太多，一台 server 存不下，所以 DNS server 排成一棵分層的樹，每一層只管下一層在哪。網域名稱從右往左讀就是這棵樹：`www.google.com.` 最右邊其實藏著一個 `.`，那就是 **root**，往左依序是 TLD（`com`）、網域（`google`）、子網域（`www`）。
+
+- **Root name server（`.`）**：存放各個 TLD name server 的位址，不知道 `google.com` 的 IP。全世界只有 13 個 logical root server（`a.root-servers.net` 到 `m.root-servers.net`），但每個背後都用 anycast 部署了很多台機器，實體 server 有上千台。Resolver 內建這 13 個的 IP（root hints），不用問別人就找得到 root。
+- **TLD name server**：存放這個 TLD 底下各網域的 authoritative name server 位址（也就是 `NS` record），一樣不知道最終的 IP。TLD 分成幾種：
+  - generic TLD（gTLD）：`.com`、`.org`
+  - country code TLD（ccTLD）：`.us`、`.tw`
+  - 保留給測試用的：`.test`，不會出現在公開的 DNS 上
+- **Authoritative name server**：真正存放 `google.com` 各筆 record、給出最終答案的 server，可能是你自己架的，或 Route 53、Cloudflare。你在 GoDaddy、Namecheap 這類 registrar 設定 name server 時，改的是 TLD server 上指向它的那筆 `NS` record。
 
 ## 查詢流程
 
-```text
-瀏覽器 / OS 快取 → 有就直接用
-      │ 沒有
-      ▼
-Recursive Resolver（ISP 或 8.8.8.8、1.1.1.1，幫你跑完整個流程）
-      │
-      ├─▶ Root server：「.com 去問這幾台」
-      ├─▶ TLD server (.com)：「example.com 去問這幾台」
-      └─▶ Authoritative server (example.com)：「api.example.com = 93.184.216.34」
-      │
-      ▼
-回傳給你，並依 TTL 快取
-```
+對照上圖：
 
-- **Recursive 查詢**：client 問 resolver，resolver 負責問到底再回答。
-- **Iterative 查詢**：resolver 問 root、TLD、authoritative，每台都只回「下一個去問誰」。
+1. 在瀏覽器輸入 `www.google.com`，瀏覽器（和 OS）的快取沒有，就把名字交給 DNS resolver（ISP 的，或 `8.8.8.8`、`1.1.1.1`）。
+2. Resolver 去問 root name server。
+3. Root 回答：「`.com` 去問這幾台 TLD server。」
+4. Resolver 去問 `.com` 的 TLD server。
+5. TLD server 回答：「`google.com` 去問這幾台 authoritative name server。」
+6. Resolver 去問 `google.com` 的 authoritative name server。
+7. Authoritative server 回傳 IP：`142.251.46.238`。
+8. Resolver 把 IP 回給瀏覽器，並依 TTL 快取起來。
 
-### Root server 與 TLD server
+- **Recursive 查詢**：步驟 1 和 8，client 問 resolver，resolver 負責問到底再回答。
+- **Iterative 查詢**：步驟 2 到 7，resolver 問 root、TLD、authoritative，每台都只回「下一個去問誰」。
 
-網域名稱是從右往左分層的：`api.example.com.` 最右邊其實藏著一個 `.`，那就是 **root**。往左依序是 TLD（`com`）、網域（`example`），最後是子網域（`api`）。查詢也照這個順序，從最上層往下問。
-
-- **Root server**：DNS 樹的頂端，只知道「每個 TLD 由哪些 server 負責」，不知道 `example.com` 的 IP。全世界只有 13 組名字（`a.root-servers.net` 到 `m.root-servers.net`），但每組背後都用 anycast 部署了很多台機器，實體 server 有上千台。Resolver 內建這 13 組的 IP（root hints），所以不需要再問別人才找得到 root。
-- **TLD server**：負責某個頂級網域，例如 `.com`、`.org`，或 `.tw` 這類國家網域。它也不知道最終的 IP，只記錄「`example.com` 的 authoritative server 是哪幾台」，也就是 `NS` record。你在 registrar 買網域、設定 name server 時，改的就是 TLD server 上的這筆資料。
-- **Authoritative server**：真正存放 `example.com` 各筆 record 的地方，可能是你自己的 DNS，或 Route 53、Cloudflare。
-
-Root 和 TLD 的答案 TTL 很長（`.com` 的 NS 是 2 天），resolver 快取之後，大部分查詢會直接跳到 authoritative server，不用每次都從 root 問起。
+沒有快取時，一次完整的 DNS 查詢平均要 20–120 ms（YSlow 的數據）。實際上 root 和 TLD 的答案 TTL 很長（`.com` 的 NS 是 2 天），resolver 快取之後，大部分查詢會直接跳到步驟 6，快取命中時更是幾乎不花時間。
 
 ## 常見的 Record 類型
 
