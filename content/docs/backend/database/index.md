@@ -143,6 +143,34 @@ CockroachDB、YugabyteDB 這類 distributed SQL 就是為了在水平擴展的�
 
 分散式系統一定會遇到網路分區，所以實際上是在 **C 與 A 之間取捨**。CAP 適用於所有分散式資料庫，不是 NoSQL 專屬，只是 NoSQL 多半為了水平擴展而以分散式架構設計，才較常被拿來討論。
 
+> 常聽到的「三選二」不太精確：P 不是能選擇放棄的東西，網路一定會斷。正確的問法是「**分區發生的那一刻**，要回錯誤（保 C）還是回可能過時的資料（保 A）？」
+
+```text
+       網路分區
+  ┌──────┐  ╳  ┌──────┐
+  │ 節點 A│─────│ 節點 B│     client 在 A 寫入 x=2，B 還停在 x=1
+  └──────┘     └──────┘     這時有人去 B 讀 x：
+
+  CP：B 回錯誤或等待，直到確定拿到最新值  → 正確，但暫時不可用
+  AP：B 先回 x=1，分區恢復後再同步        → 可用，但讀到舊資料
+```
+
+| 類型 | 分區時的行為 | 例子 | 適合 |
+| --- | --- | --- | --- |
+| **CP** | 少數派那一側拒絕服務，保證不會讀到舊資料 | MongoDB（預設 majority 寫入，只有 primary 能寫）、etcd、ZooKeeper、HBase | 帳務、庫存、設定與 [leader election](/system/distributed#leader-election) |
+| **AP** | 每個節點都繼續服務，之後再合併衝突（最終一致性） | Cassandra、DynamoDB（預設）、CouchDB | 購物車、按讚數、動態牆、DNS |
+
+很多資料庫的 C / A 其實是**可以調整的**，不是固定的標籤。例如 Cassandra 可以依每次查詢設定 consistency level（`ONE`、`QUORUM`、`ALL`），只要讀寫節點數滿足 `R + W > N` 就能讀到最新寫入；MongoDB 的 read / write concern 也可以調鬆，換取更低延遲。
+
+#### PACELC
+
+CAP 只講了「分區時」的取捨，但分區其實很少發生。**PACELC** 補上平常的情況：
+
+- **P**artition 時：在 **A**vailability 和 **C**onsistency 之間選
+- **E**lse（正常時）：在 **L**atency 和 **C**onsistency 之間選
+
+即使網路正常，要保證強一致，寫入就得等其他節點確認，延遲一定比較高。所以 DynamoDB、Cassandra 是 PA/EL（兩種情況都偏向快），etcd、ZooKeeper、HBase 是 PC/EC（兩種情況都偏向正確）。
+
 ## Query
 指的是對資料庫作查詢時，會寫出的資料庫 SQL 程式語言，所組合而成的語句。
 
@@ -169,3 +197,4 @@ CockroachDB、YugabyteDB 這類 distributed SQL 就是為了在水平擴展的�
 - [[DB] 資料庫基礎 Database Basic](https://pjchender.dev/database/database-basic/)
 - [SQL vs. NoSQL Databases: What's the Difference?](https://www.ibm.com/think/topics/sql-vs-nosql)
 - [NoSQL vs. SQL Databases](https://www.mongodb.com/resources/basics/databases/nosql-explained/nosql-vs-sql)
+- [Martin Kleppmann: Please stop calling databases CP or AP](https://martin.kleppmann.com/2015/05/11/please-stop-calling-databases-cp-or-ap.html)

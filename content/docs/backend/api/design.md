@@ -110,6 +110,54 @@ Content-Type: application/json
 
 分頁、response 巢狀與限流請見 [API Performance](./performance.md)。
 
+## 冪等 Idempotency
+
+**冪等**：同一個請求執行一次和執行很多次，結果一樣。
+
+網路一定會出錯，client 送出請求後 timeout，它**不知道 server 到底有沒有做**：可能是請求沒送到，也可能是做完了、只是回應在路上掉了。唯一安全的做法是重試，所以 server 必須讓重試不會造成重複的副作用。如果「扣款」不是冪等的，使用者按一次付款就可能被扣兩次錢。
+
+### HTTP method 的冪等性
+
+Method | 冪等 | 為什麼
+--- | --- | ---
+`GET` / `HEAD` | 是 | 只讀，不改資料
+`PUT` | 是 | 「把資源設成這個樣子」，做幾次結果都一樣
+`DELETE` | 是 | 刪一次和刪十次，資源都是不存在（第二次回 `404` 也沒關係，狀態沒變）
+`POST` | **否** | 「新增一筆」，做兩次就有兩筆
+`PATCH` | 不一定 | `{"name": "Bob"}` 是冪等的，`{"op": "increment"}` 就不是
+
+冪等指的是**伺服器上的狀態**，不是回應內容：第二次 `DELETE` 回 `404`，但資料狀態跟第一次之後一樣，所以仍然是冪等的。
+
+### 讓 POST 也能安全重試：Idempotency Key
+
+Stripe 的做法是讓 client 在每個「會產生副作用」的請求帶上一個唯一的 key：
+
+```http
+POST /v1/charges
+Idempotency-Key: 5f1e2b7c-8d3a-4c9e-a1f0-2b6d9e3c7a14
+Content-Type: application/json
+
+{"amount": 2000, "currency": "twd", "customer": "cus_123"}
+```
+
+```text
+第一次收到 key ──▶ 存下 key（狀態：處理中）──▶ 執行扣款 ──▶ 把 response 跟 key 存在一起 ──▶ 回應
+重試，同一個 key ──▶ 查到 key 已完成 ──▶ 直接回傳存好的 response，不再扣款
+```
+
+實作重點：
+
+- **Key 由 client 產生**（通常是 UUID v4），同一個操作的每次重試都要用同一個 key；使用者真的想再付一次，才產生新的 key。
+- **存的是結果，不只是「做過了」**：重試時要回給 client 跟第一次一模一樣的 response（包含錯誤）。
+- **處理同時抵達的重複請求**：兩個相同 key 的請求同時進來時，第二個要等第一個做完，或直接回 `409 Conflict`。可以用 DB 的 unique constraint 或分散式鎖保證只有一個能開始執行。
+- **同一個 key 但 body 不同**：代表 client 有 bug，回 `422` 之類的錯誤，不要執行。
+- **Key 要有期限**：Stripe 保留 24 小時，過期後同一個 key 會被當成新請求。
+- **把冪等紀錄和業務資料寫在同一個 transaction**：否則扣款成功但 key 沒存到，重試時又會再扣一次。
+
+不一定要用額外的 header，也可以從業務本身找到唯一性。例如訂單編號由 client 產生、用 `UNIQUE` 約束擋重複；或用「`UPDATE orders SET status='paid' WHERE id=? AND status='pending'`」這種條件更新，第二次執行時 affected rows 為 0，自然不會重複處理。
+
+冪等也是很多分散式機制的前提：[message queue](/system/message-queue#投遞語意) 的 at-least-once 會重複投遞、[Saga](/backend/database/transaction#saga) 的補償操作可能被重試、[retry](/system/resilience#retry) 本身就是重送，這些都要求接收端是冪等的。
+
 ## 避免 breaking change
 
 Breaking change 指的是**任何會讓既有程式不能照原本方式運作的改動**。原則是：**昨天能用的，明天也要能用。**
@@ -155,3 +203,4 @@ Breaking change 指的是**任何會讓既有程式不能照原本方式運作�
 ## Reference
 
 - [How we design our APIs at Slack](https://slack.engineering/how-we-design-our-apis-at-slack/)
+- [Stripe: Designing robust and predictable APIs with idempotency](https://stripe.com/blog/idempotency)

@@ -181,16 +181,48 @@ ACID、isolation level、lost update 的處理方式等見 [Transaction](/backen
 
 ## Index
 
-Index 讓查詢不必掃整張表，最常見的是 B-Tree。
+Index 讓查詢不必掃整張表，最常見的是 B-Tree。沒有索引時，找一筆資料要從頭掃到尾（O(n)）；有 B-Tree 索引時，從根往下找幾層就到了（O(log n)），一億筆資料也只要走 4、5 層。
+
+```text
+                 [ 50 | 100 ]                ← 根節點
+               /      |       \
+     [10|20|30]   [60|70|80]   [120|150]     ← 中間節點
+        ...          ...           ...
+  [葉節點：key + 指向資料列的位置]  ⇄  [葉節點]  ⇄  ...
+                                   ↑ 葉節點之間串起來，所以範圍查詢和排序很快
+```
+
+可以把索引想成書最後面的「索引頁」：按照關鍵字排好，查到頁碼再翻過去（回表）。
 
 ```sql
 CREATE INDEX idx_orders_user_created ON orders (user_id, created_at);
 ```
 
+### 索引類型（以 PostgreSQL 為例）
+
+類型 | 適合 | 例子
+--- | --- | ---
+B-Tree | 預設類型，等值、範圍、排序、前綴 `LIKE 'abc%'` | `WHERE created_at > ?`、`ORDER BY id`
+Hash | 只有等值查詢 | `WHERE token = ?`（實務上 B-Tree 通常就夠了）
+GIN | 一個欄位裡有多個值：全文搜尋、JSONB、陣列 | `WHERE tags @> '{go}'`、`WHERE doc @> '{"status":"paid"}'`
+GiST | 地理資料、範圍型別、相似度 | PostGIS 找「附近 1 公里的店」
+BRIN | 超大且依時間自然排序的表，索引非常小 | log、感測器資料依 `created_at` 查
+
+另外幾種常用的建法：
+
+- **Unique index**：同時是約束，保證欄位不重複（例如 email），也是做[冪等](/backend/api/design#冪等-idempotency)時防止重複寫入的最後一道防線。
+- **Partial index**：只對部分資料建索引，例如 `CREATE INDEX ... ON orders (user_id) WHERE status = 'pending'`，索引小、更新成本低。
+- **Expression index**：對運算結果建索引，例如 `CREATE INDEX ... ON users (LOWER(email))`，解決下面「對欄位套函式會失效」的問題。
+
+### 使用原則
+
 - **複合索引看最左前綴**：`(user_id, created_at)` 可用於 `WHERE user_id = ?` 或 `WHERE user_id = ? AND created_at > ?`，但單獨 `WHERE created_at > ?` 用不到。
 - **索引會失效的寫法**：對欄位套函式（`WHERE LOWER(email) = ?`）、隱式型別轉換、前綴萬用字元（`LIKE '%abc'`）。
 - **索引不是越多越好**：每次寫入都要維護索引，會拖慢 `INSERT` / `UPDATE` 並佔空間。
 - **Covering index**：查詢需要的欄位都在索引內，就不用回表。
+- **看選擇性（selectivity）**：欄位值越分散，索引越有用。`status` 只有 3 種值、`is_deleted` 只有 true/false，查詢會命中一大半的資料，優化器通常寧可全表掃描；這種欄位適合放在複合索引的後面，或用 partial index。
+- **複合索引的順序**：等值條件的欄位放前面，範圍條件（`>`、`BETWEEN`）放後面。範圍條件之後的欄位用不到索引。
+- **大表加索引會鎖表**：PostgreSQL 用 `CREATE INDEX CONCURRENTLY` 避免阻擋寫入（見 [Migration](/backend/database/migration)）。
 
 用 `EXPLAIN` 看執行計畫：
 

@@ -173,7 +173,7 @@ TCP 和 UDP 是傳輸層的兩條路，日常用到的應用層協定大多就�
 1. **HTTP**：client-server 的請求-回應協定，用來抓 HTML、圖片、API 資料等資源，是 Web 資料交換的基礎。跑在 TCP 上（見 [HTTP](/network/http)）。
 2. **HTTP/3**：HTTP 的下一個主要版本，改跑在 **QUIC（UDP）** 上，一個 stream 掉封包不會卡住其他 stream，連線建立也更快。很適合常換網路的行動裝置，以及 VR 這類需要大量頻寬、對延遲敏感的應用（見 [HTTP 版本演進](/network/http#版本演進)）。
 3. **HTTPS**：HTTP 加上 TLS 加密，先用公鑰交換出 session key，之後的資料都用它加密（見 [HTTPS / SSL / TLS](/network/security)）。
-4. **WebSocket**：在一條 TCP 連線上做**全雙工**通訊。先用 HTTP 的 `Upgrade` header 握手，server 回 `101 Switching Protocols` 後，這條連線就改講 WebSocket。REST 只能由 client 主動「拉」資料，WebSocket 讓 server 也能主動「推」，適合聊天、股價、線上遊戲這類即時更新。
+4. **WebSocket**：在一條 TCP 連線上做**全雙工**通訊。先用 HTTP 的 `Upgrade` header 握手，server 回 `101 Switching Protocols` 後，這條連線就改講 WebSocket。REST 只能由 client 主動「拉」資料，WebSocket 讓 server 也能主動「推」，適合聊天、股價、線上遊戲這類即時更新。和 polling、SSE 的比較以及怎麼擴展，見 [Real-time API](/backend/api/realtime)。
 5. **TCP**：先三次握手建立連線，保證資料送達且照順序，許多應用層協定都蓋在它上面（見上面的 [TCP vs UDP](#tcp-vs-udp)）。
 6. **UDP**：不建立連線，直接把封包丟給對方。適合「偶爾掉一個封包比等它重傳好」的場景，例如語音、視訊通話。
 7. **SMTP**：在 mail server 之間**寄送** email（port 25；client 送信給自己的 mail server 用 587）。收信則是另外的 IMAP / POP3。

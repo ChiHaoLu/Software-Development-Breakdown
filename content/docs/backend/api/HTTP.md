@@ -131,7 +131,7 @@ GET  /jobs/123         → 200 {"status": "done", "result": "/reports/9"}
 
 假設「資源早就存在，但這不算錯誤」。這比較有爭議，`202` 的原意是「還沒處理完」，用在這裡語意不太對。比較常見的做法是：
 
-- 重複的請求不算錯誤（冪等）：回 `200 OK` 並附上已經存在的資源，或是回 `303 See Other` 指向它
+- 重複的請求不算錯誤（冪等，見 [Idempotency](/backend/api/design#冪等-idempotency)）：回 `200 OK` 並附上已經存在的資源，或是回 `303 See Other` 指向它
 - 重複算是衝突：回 `409 Conflict`
 
 ---

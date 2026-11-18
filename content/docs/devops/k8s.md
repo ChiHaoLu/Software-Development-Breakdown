@@ -44,6 +44,8 @@ title: "Kubernetes"
 └────────────┘   └────────────┘   └────────────┘
 ```
 
+高可用部署時 control plane 會跑三份以上：etcd 用 Raft 選出 leader；kube-scheduler 和 controller-manager 雖然每台都在跑，但透過 etcd 裡的 `Lease` 物件選出一個 leader，只有它真的在工作，避免兩個 scheduler 同時排同一個 Pod（見 [Leader Election](/system/distributed#leader-election)）。
+
 用 EKS、GKE、AKS 等 managed k8s 時，control plane 由雲端廠商維護（包含 etcd 備份和[上 patch](/devops/patch)），你只需要管 Node 和上面的 workload。
 
 ## 核心物件

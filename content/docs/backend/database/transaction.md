@@ -174,6 +174,41 @@ Consistency 比較像是應用層的責任。資料庫用 constraint（PK、FK�
 | 失敗處理 | 資料庫 rollback | 應用程式寫補償操作 |
 | 可用性 | coordinator 掛掉會卡住 | 各步驟獨立，不會整體卡住 |
 
+### Saga
+
+以電商下單為例，訂單、庫存、付款、物流各是一個服務、各有自己的 DB：
+
+```text
+正常流程：
+  T1 建立訂單 ──▶ T2 扣庫存 ──▶ T3 扣款 ──▶ T4 安排出貨 ──▶ 完成
+
+T3 扣款失敗：
+  T1 建立訂單 ──▶ T2 扣庫存 ──▶ T3 扣款 ✗
+                                   │
+  C1 取消訂單 ◀── C2 補回庫存 ◀────┘   （反向執行已完成步驟的補償）
+```
+
+每個步驟 `Tn` 都要有對應的補償 `Cn`。注意補償是**語意上的撤銷**，不是 rollback：已經寄出去的 email 收不回來，只能再寄一封「訂單已取消」。
+
+兩種協調方式：
+
+| | Choreography（編舞） | Orchestration（編排） |
+| --- | --- | --- |
+| 做法 | 沒有中央控制，每個服務聽事件、做完再發事件：`OrderCreated` → 庫存服務扣庫存 → `StockReserved` → 付款服務扣款 … | 一個 orchestrator 依序呼叫每個服務，記錄目前走到哪一步，失敗時負責觸發補償 |
+| 優點 | 服務之間耦合低，不需要額外元件 | 流程集中在一個地方，好讀、好監控、好除錯 |
+| 缺點 | 流程散落在各服務裡，步驟一多就很難追「現在卡在哪」，也容易出現循環依賴 | orchestrator 本身要高可用，而且可能變成知道太多商業邏輯的中心 |
+| 適合 | 步驟少（2～4 步）、流程簡單 | 步驟多、有分支、需要逾時與人工介入 |
+
+Orchestration 通常不自己從零寫，而是用 workflow engine：Uber 為了管理行程、付款這類長流程開發了 **Cadence**，原班人馬後來做成 **Temporal**；AWS 有 Step Functions。它們會把每一步的狀態持久化，orchestrator 重啟後能從中斷的地方繼續，重試和逾時也都內建。
+
+設計 Saga 時要注意：
+
+- **沒有隔離性**：T2 扣了庫存、T3 還沒完成時，別人看得到庫存已經減少。常見的緩解方式是用「語意鎖」，例如先把訂單標成 `PENDING`，其他流程看到 `PENDING` 就知道它還沒定案。
+- **補償和每一步都要[冪等](/backend/api/design#冪等-idempotency)**：訊息可能重送、orchestrator 可能重試，補償執行兩次不能退兩次款。
+- **補償也可能失敗**：要能持續重試，最後真的不行就進入需要人工處理的狀態，不能默默放棄。
+- **安排步驟順序**：把最可能失敗、或無法補償的步驟（例如真的寄出貨物）放在越後面越好。
+- **「更新 DB 再發事件」要原子**：改完 DB 但事件沒發出去，Saga 就卡住了。常用 **Transactional Outbox**：把事件和業務資料寫在同一個 transaction 的 outbox 表，再由另一個程序讀出來發到 [message queue](/system/message-queue)。
+
 ## 一句話總結
 
 > Transaction 用 **WAL** 保證 A 和 D：commit 只要日誌落盤，當機時 redo 已 commit 的、undo 沒 commit 的。用 **MVCC 加上鎖** 保證 I，isolation level 決定 snapshot 的範圍和要防哪些異常。C 靠 constraint 與應用程式。跨節點用 **2PC** 或 **Saga**。
@@ -184,3 +219,5 @@ Consistency 比較像是應用層的責任。資料庫用 constraint（PK、FK�
 - [Pessimistic vs Optimistic Locking](https://bytebytego.com/guides/pessimistic-vs-optimistic-locking/)
 - [PostgreSQL: Transaction Isolation](https://www.postgresql.org/docs/current/transaction-iso.html)
 - [MySQL: InnoDB Transaction Isolation Levels](https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html)
+- [microservices.io: Pattern: Saga](https://microservices.io/patterns/data/saga.html)
+- [microservices.io: Pattern: Transactional outbox](https://microservices.io/patterns/data/transactional-outbox.html)

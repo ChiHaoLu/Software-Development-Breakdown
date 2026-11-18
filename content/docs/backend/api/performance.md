@@ -32,7 +32,41 @@ Retry-After: 30                  ← 30 秒後再試
 
 > 不要以為「自己用起來夠快」就代表大家都夠快。開發者一定會用你沒想到的方式呼叫你的 API。
 
+### 常見演算法
+
+演算法 | 做法 | 特性
+--- | --- | ---
+Fixed window | 每個固定時間窗（例如每分鐘）各自計數，超過就擋 | 最簡單；但在窗口交界處可能放進 2 倍流量（59 秒打 100 次、61 秒再打 100 次）
+Sliding window log | 記下每個請求的時間戳，數「過去 60 秒內」有幾個 | 精準，但每個請求都要存，記憶體成本高
+Sliding window counter | 用「目前窗口計數 + 前一個窗口計數 × 重疊比例」估算 | 接近精準、成本低，實務上很常用
+Token bucket | 桶子以固定速率補 token，每個請求拿走一個，沒 token 就擋 | **允許短暫突發**（桶子滿時可以一次用掉），AWS、Stripe 都用這種
+Leaky bucket | 請求先進佇列，以固定速率流出處理 | 輸出最平滑，但突發流量會排隊、延遲變高
+
+```text
+Token bucket（容量 10，每秒補 2 個）
+
+  補 token ──▶ ┌──────────┐
+   2 個/秒     │ ● ● ● ●  │ ← 目前 4 個
+               └────┬─────┘
+                    │ 每個請求拿 1 個
+                    ▼
+            有 token → 放行
+            沒 token → 429
+```
+
+### 實作上要注意
+
+- **用什麼當 key**：API key、user ID 比 IP 準。用 IP 限流時，NAT 後面的整間公司、整個電信業者（CGNAT）會共用一個額度，容易誤傷（見 [NAT](/network/ip)）。
+- **多台 server 要共用計數**：每台各自計數的話，3 台 server 就等於上限變 3 倍。通常把計數放在 Redis，用 `INCR` + `EXPIRE`，或用 Lua script 讓「讀取、判斷、遞增」變成原子操作，避免 race condition。
+- **放在哪一層**：越外層越省資源。CDN / WAF（例如 Cloudflare）擋 DDoS 和爬蟲，API Gateway 或 [reverse proxy](/backend/proxy)（Nginx 的 `limit_req`）擋一般超量，應用程式內再依商業規則限制（例如「每個使用者每天最多寄 5 封驗證信」）。
+- **分級限制**：登入、寄信、付款這類敏感 endpoint 要比一般讀取 API 嚴格得多，也能擋暴力破解。
+- **Redis 掛掉怎麼辦**：要先決定是 fail-open（放行，保住可用性）還是 fail-closed（全擋，保住後端）。
+
+限流是保護自己不被打爆；呼叫別人時怎麼避免把對方打爆、對方掛掉時怎麼不被拖垮，見 [Resilience](/system/resilience)。
+
 ## Reference
 
 - [Top 5 API Performance Tips](https://www.youtube.com/watch?v=b4TpO9pYpqk)
 - [How we design our APIs at Slack](https://slack.engineering/how-we-design-our-apis-at-slack/)
+- [Cloudflare: How we built rate limiting capable of scaling to millions of domains](https://blog.cloudflare.com/counting-things-a-lot-of-different-things/)
+- [Stripe: Scaling your API with rate limiters](https://stripe.com/blog/rate-limiters)

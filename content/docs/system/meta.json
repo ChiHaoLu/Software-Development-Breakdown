@@ -1,1 +1,1 @@
-{ "title": "System Design", "pages": ["project", "distributed"] }
+{ "title": "System Design", "pages": ["project", "distributed", "message-queue", "resilience"] }
